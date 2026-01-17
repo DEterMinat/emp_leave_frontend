@@ -3,7 +3,7 @@
  */
 
 const API = {
-    baseUrl: CONFIG?.API_BASE_URL || 'http://localhost:8000',
+    baseUrl: CONFIG?.API_BASE_URL || 'http://localhost:5082',
 
     /**
      * Make HTTP request
