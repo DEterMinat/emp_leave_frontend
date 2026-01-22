@@ -70,27 +70,51 @@
         </div>
     </div>
 
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
     <script>
-        // Mock Data พนักงานในทีม
-        const teamMembers = [
-            { id: 201, name: "สมชาย ใจดี", dept: "IT Support" },
-            { id: 202, name: "มณี มีทรัพย์", dept: "IT Support" },
-            { id: 203, name: "วิชัย ชนะศึก", dept: "IT Support" },
-            { id: 204, name: "รุ่งนภา พัฒนา", dept: "IT Support" },
-            { id: 205, name: "กมล คนขยัน", dept: "IT Support" }
-        ];
+        lucide.createIcons();
 
-        function renderTeamList() {
+        let teamMembers = [];
+
+        async function initTeams() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) { window.location.href = '../../index.html'; return; }
+
+            try {
+                // 1. ดึงข้อมูล Manager เพื่อแสดงผลใน Navbar
+                const user = await API.users.getById(userId);
+                document.querySelector('h1').innerText = user.firstName + ' ' + user.lastName;
+                document.querySelector('.text-sm.text-gray-500').innerText = `หัวหน้างาน - ${user.department}`;
+
+                // 2. ดึงรายชื่อพนักงานทั้งหมด (ในระบบจริงควรกรองเฉพาะแผนกเดียวกัน)
+                teamMembers = await API.users.getAll();
+                renderTeamList(teamMembers);
+
+            } catch (error) {
+                UI.showToast('ไม่สามารถโหลดข้อมูลทีมได้: ' + error.message, 'error');
+            }
+        }
+
+        function renderTeamList(members) {
             const list = document.getElementById('team-list');
-            list.innerHTML = teamMembers.map(member => `
+            if (members.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 py-10">ไม่พบรายชื่อพนักงานในทีม</p>';
+                return;
+            }
+
+            list.innerHTML = members.map(member => `
                 <div class="bg-white px-6 py-4 rounded-full shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200 transition-all">
                     <div class="flex items-center space-x-4">
                         <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
                             <i data-lucide="user" class="w-5 h-5"></i>
                         </div>
-                        <span class="font-bold text-gray-700">${member.name}</span>
+                        <div>
+                            <span class="font-bold text-gray-700">${member.firstName} ${member.lastName}</span>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold">${member.department || 'N/A'}</p>
+                        </div>
                     </div>
-                    <button onclick="viewHistory(${member.id}, '${member.name}')" class="bg-blue-600 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2">
+                    <button onclick="viewHistory('${member.id}', '${member.firstName} ${member.lastName}')" class="bg-blue-600 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2">
                         <i data-lucide="search" class="w-3.5 h-3.5"></i>
                         <span>History Check</span>
                     </button>
@@ -99,35 +123,42 @@
             lucide.createIcons();
         }
 
-        function viewHistory(id, name) {
+        async function viewHistory(empId, name) {
             document.getElementById('modalEmployeeName').innerText = `History: ${name}`;
             const historyContent = document.getElementById('historyContent');
-            
-            // จำลองข้อมูลประวัติการลา
-            historyContent.innerHTML = `
-                <div class="p-4 bg-gray-50 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">Annual Leave</p>
-                        <p class="text-xs text-gray-400">Jan 01 - Jan 03 (3 days)</p>
-                    </div>
-                    <span class="text-green-600 font-bold text-sm">Approved</span>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">Sick Leave</p>
-                        <p class="text-xs text-gray-400">Dec 15 - Dec 16 (2 days)</p>
-                    </div>
-                    <span class="text-green-600 font-bold text-sm">Approved</span>
-                </div>
-            `;
+            historyContent.innerHTML = '<p class="text-center py-4">Loading history...</p>';
             document.getElementById('historyModal').classList.remove('hidden');
+
+            try {
+                // ดึงประวัติการลาจริงของพนักงานคนนี้จาก API
+                const history = await API.leaves.getAll(empId);
+                
+                if (history.length === 0) {
+                    historyContent.innerHTML = '<p class="text-center py-4 text-gray-400">ไม่มีประวัติการลา</p>';
+                    return;
+                }
+
+                historyContent.innerHTML = history.map(req => `
+                    <div class="p-4 bg-gray-50 rounded-2xl flex justify-between items-center border border-gray-100">
+                        <div>
+                            <p class="font-bold text-gray-800">${req.type}</p>
+                            <p class="text-xs text-gray-400">${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</p>
+                        </div>
+                        ${UI.getStatusBadge(req.status)}
+                    </div>
+                `).join('');
+                lucide.createIcons();
+
+            } catch (error) {
+                historyContent.innerHTML = `<p class="text-center py-4 text-red-500">Error: ${error.message}</p>`;
+            }
         }
 
         function closeHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
         }
 
-        window.onload = renderTeamList;
+        window.onload = initTeams;
     </script>
 </body>
 </html>

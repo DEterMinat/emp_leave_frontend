@@ -6,7 +6,7 @@
 // Configuration
 // ============================================
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:8000',
+    API_BASE_URL: 'http://localhost:5082',
     DATE_FORMAT: 'th-TH'
 };
 
@@ -146,6 +146,41 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 });
+
+async function handleLogin() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+
+    try {
+        // เรียกใช้ API.request ที่เพื่อนเตรียมไว้ให้
+        // หมายเหตุ: ตรวจสอบ endpoint กับเพื่อนอีกครั้ง (เช่น /api/users/login)
+        const response = await API.request('/api/users/login', {
+            method: 'POST',
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        if (response) {
+            // 1. เก็บข้อมูลลง LocalStorage เพื่อใช้ในหน้าอื่นๆ
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('userId', response.id);
+            localStorage.setItem('userRole', response.role);
+            localStorage.setItem('userName', response.firstName + ' ' + response.lastName);
+
+            UI.showToast('เข้าสู่ระบบสำเร็จ', 'success');
+
+            // 2. เปลี่ยนหน้าตาม Role
+            if (response.role === 'Employee') {
+                window.location.href = 'pages/employee/dashboard.html';
+            } else if (response.role === 'Manager') {
+                window.location.href = 'pages/manager/dashboard.html';
+            } else {
+                window.location.href = 'pages/hr/dashboard.html';
+            }
+        }
+    } catch (error) {
+        UI.showToast('Login ไม่สำเร็จ: ' + error.message, 'error');
+    }
+}
 
 // Export for use in HTML
 window.UI = UI;

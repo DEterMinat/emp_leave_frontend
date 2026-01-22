@@ -70,75 +70,103 @@
 
     </main>
 
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
     <script>
-        // 1. Bar Chart: สรุปจำนวนการลาแยกตามประเภท
-        const ctx1 = document.getElementById('leaveTypeChart');
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['ลาป่วย', 'ลากิจ', 'ลาพักร้อน', 'ไม่ได้รับค่าตอบแทน', 'ลาบวช'],
-                datasets: [{
-                    label: 'Leave Count',
-                    data: [1, 13, 2, 6, 12],
-                    backgroundColor: '#1E6091',
-                    borderRadius: 8,
-                    barThickness: 40
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { drawBorder: false } } }
-            }
-        });
-
-        // 2. Line Chart: แนวโน้มการลาในแต่ละวันของสัปดาห์
-        const ctx2 = document.getElementById('leaveDayChart');
-        new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'],
-                datasets: [{
-                    label: 'จำนวนคนลา',
-                    data: [20, 12, 10, 6, 22],
-                    borderColor: '#1E6091',
-                    backgroundColor: 'rgba(30, 96, 145, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#1E6091'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-
-        // 3. Pie Chart: สัดส่วนการอนุมัติ
-        const ctx3 = document.getElementById('decisionChart');
-        new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['Approve', 'Reject'],
-                datasets: [{
-                    data: [55, 45],
-                    backgroundColor: ['#1E6091', '#F17135'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-                }
-            }
-        });
-
         lucide.createIcons();
+
+        async function initStatistics() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) { window.location.href = '../../index.html'; return; }
+
+            try {
+                // 1. ดึงข้อมูล Manager แสดงใน Navbar
+                const user = await API.users.getById(userId);
+                document.querySelector('h1').innerText = user.firstName + ' ' + user.lastName;
+                document.querySelector('.text-sm.text-gray-500').innerText = `หัวหน้างาน - ${user.department}`;
+
+                // 2. ดึงข้อมูลใบลาทั้งหมดของทีม
+                const allLeaves = await API.leaves.getAll();
+                
+                // 3. ประมวลผลข้อมูลสำหรับกราฟ
+                updateTypeChart(allLeaves);
+                updateDayChart(allLeaves);
+                updateDecisionChart(allLeaves);
+
+            } catch (error) {
+                UI.showToast('ดึงข้อมูลสถิติผิดพลาด: ' + error.message, 'error');
+            }
+        }
+
+        // --- ฟังก์ชันอัปเดตกราฟแต่ละประเภท ---
+
+        function updateTypeChart(leaves) {
+            const counts = { 'ลาป่วย': 0, 'ลากิจ': 0, 'ลาพักร้อน': 0, 'อื่นๆ': 0 };
+            leaves.forEach(l => {
+                if (l.type.includes('Sick')) counts['ลาป่วย']++;
+                else if (l.type.includes('Personal')) counts['ลากิจ']++;
+                else if (l.type.includes('Annual')) counts['ลาพักร้อน']++;
+                else counts['อื่นๆ']++;
+            });
+
+            new Chart(document.getElementById('leaveTypeChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{
+                        data: Object.values(counts),
+                        backgroundColor: '#1E6091',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function updateDayChart(leaves) {
+            const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+            const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+            
+            leaves.forEach(l => {
+                const dayIndex = new Date(l.startDate).getDay();
+                dayCounts[dayIndex]++;
+            });
+
+            new Chart(document.getElementById('leaveDayChart'), {
+                type: 'line',
+                data: {
+                    labels: ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'],
+                    datasets: [{
+                        label: 'จำนวนคนลา',
+                        data: dayCounts.slice(1, 6), // แสดงเฉพาะ จ-ศ
+                        borderColor: '#1E6091',
+                        fill: true,
+                        backgroundColor: 'rgba(30, 96, 145, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function updateDecisionChart(leaves) {
+            const approved = leaves.filter(l => l.status.toLowerCase() === 'approved').length;
+            const rejected = leaves.filter(l => l.status.toLowerCase() === 'rejected').length;
+
+            new Chart(document.getElementById('decisionChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Approve', 'Reject'],
+                    datasets: [{
+                        data: [approved, rejected],
+                        backgroundColor: ['#1E6091', '#F17135']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.onload = initStatistics;
     </script>
 </body>
 </html>
