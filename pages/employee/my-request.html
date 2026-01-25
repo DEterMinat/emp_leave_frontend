@@ -17,8 +17,8 @@
                         <i data-lucide="user"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold">สมชาย ใจดี</h1>
-                        <p class="text-sm text-gray-500 italic">พนักงาน - IT Support</p>
+                        <h1 class="text-lg font-bold" id="user-name">Username</h1>
+                        <p class="text-sm text-gray-500 italic" id="user-role-dept">Role - Department</p>
                     </div>
                 </div>
                 <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
@@ -41,7 +41,7 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800">My Leave Request (n)</h2>
+            <h2 class="text-2xl font-bold text-gray-800" id="request-title">My Leave Request (0)</h2>
             <div class="flex space-x-2">
                 <select class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
                     <option>All Status</option>
@@ -57,41 +57,71 @@
     </main>
 
     <script src="../data/mock-data.js"></script>
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
     <script>
-        function renderRequests() {
+        lucide.createIcons();
+
+        // ตัวแปรเก็บข้อมูลการลาทั้งหมดเพื่อใช้ในการ Filter
+        let allLeaves = [];
+
+        async function initMyRequests() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            try {
+                // 1. ดึงข้อมูล User มาแสดงใน Navbar
+                const user = await API.users.getById(userId);
+                document.getElementById('user-name').innerText = user.firstName + ' ' + user.lastName;
+                document.getElementById('user-role-dept').innerText = `${user.role} - ${user.department}`;
+
+                // 2. ดึงข้อมูลการลาทั้งหมดของผู้ใช้คนนี้
+                allLeaves = await API.leaves.getAll(userId);
+                
+                // อัปเดตหัวข้อจำนวนรายการ
+                document.getElementById('request-title').innerText = `My Leave Request (${allLeaves.length})`;
+
+                // 3. แสดงผลรายการลงในหน้าเว็บ
+                renderRequests(allLeaves);
+
+            } catch (error) {
+                UI.showToast('ดึงข้อมูลผิดพลาด: ' + error.message, 'error');
+            }
+        }
+
+        function renderRequests(leaves) {
             const listContainer = document.getElementById('request-list');
             
-            // Mock Data สำหรับรายการลา (อ้างอิงประเภทการลาจาก PDF [cite: 44-48])
-            const requests = [
-                { type: "Sick Leave", start: "Jan 15 2025", end: "Jan 19 2025", days: 5, status: "Approved", reason: "Covid-19", color: "bg-green-100 text-green-700" },
-                { type: "Unpaid Leave", start: "Jan 10 2025", end: "Jan 12 2025", days: 3, status: "Pending", reason: "Visiting family at Bangkok", color: "bg-orange-100 text-orange-700" },
-                { type: "Personal Leave", start: "Jan 05 2025", end: "Jan 09 2025", days: 5, status: "Approved", reason: "Private business", color: "bg-green-100 text-green-700" }
-            ];
+            if (leaves.length === 0) {
+                listContainer.innerHTML = '<p class="col-span-full text-center text-gray-400 py-10">ไม่พบประวัติการลา</p>';
+                return;
+            }
 
-            listContainer.innerHTML = requests.map(req => `
+            listContainer.innerHTML = leaves.map(req => `
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
                     <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h4 class="font-bold text-lg">สมชาย ใจดี</h4>
-                            <p class="text-sm font-medium ${req.type === 'Sick Leave' ? 'text-red-500' : 'text-blue-500'}">${req.type}</p>
+                            <h4 class="font-bold text-lg">${document.getElementById('user-name').innerText}</h4>
+                            <p class="text-sm font-medium text-blue-500">${req.type}</p>
                         </div>
-                        <span class="px-4 py-1.5 ${req.color} text-xs rounded-full font-bold uppercase tracking-wider">
-                            ${req.status}
-                        </span>
+                        ${UI.getStatusBadge(req.status)} 
                     </div>
                     
                     <div class="space-y-2 text-sm text-gray-500">
                         <p class="flex items-center space-x-2 text-gray-600">
                             <i data-lucide="calendar" class="w-4 h-4"></i>
-                            <span>${req.start} - ${req.end}</span>
+                            <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
                         </p>
                         <p class="flex items-center space-x-2">
                             <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
-                            <span>${req.days} days</span>
+                            <span>${LeaveRequest.calculateDays(req.startDate, req.endDate)} days</span>
                         </p>
                         <div class="pt-3 border-t mt-3">
                             <p class="text-xs text-gray-400 uppercase font-bold tracking-tight">Reason</p>
-                            <p class="text-gray-700 italic mt-1 leading-relaxed">"${req.reason}"</p>
+                            <p class="text-gray-700 italic mt-1 leading-relaxed">"${req.reason || 'No reason provided'}"</p>
                         </div>
                     </div>
                 </div>
@@ -100,7 +130,17 @@
             lucide.createIcons();
         }
 
-        window.onload = renderRequests;
-    </script>
+        // ฟังก์ชัน Filter ตามสถานะ
+        function filterStatus(status) {
+            if (status === 'All Status') {
+                renderRequests(allLeaves);
+            } else {
+                const filtered = allLeaves.filter(l => l.status.toLowerCase() === status.toLowerCase());
+                renderRequests(filtered);
+            }
+        }
+
+        window.onload = initMyRequests;
+</script>
 </body>
 </html>

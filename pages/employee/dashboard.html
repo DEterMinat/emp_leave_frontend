@@ -44,21 +44,21 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-gray-500 text-sm">Total Request</p>
-                    <h3 class="text-3xl font-bold mt-1">2</h3>
+                    <h3 id="total-req" class="text-3xl font-bold mt-1">0</h3>
                 </div>
                 <i data-lucide="clipboard-check" class="w-10 h-10 text-gray-400"></i>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-gray-500 text-sm">Pending Approval</p>
-                    <h3 class="text-3xl font-bold mt-1 text-orange-500">1</h3>
+                    <h3 id="pending-req" class="text-3xl font-bold mt-1 text-orange-500">0</h3>
                 </div>
                 <i data-lucide="clock" class="w-10 h-10 text-orange-400"></i>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
                 <div>
                     <p class="text-gray-500 text-sm">Total Day Off</p>
-                    <h3 class="text-3xl font-bold mt-1 text-purple-600">1</h3>
+                    <h3 id="total-dayoff" class="text-3xl font-bold mt-1 text-purple-600">0</h3>
                 </div>
                 <i data-lucide="trending-up" class="w-10 h-10 text-purple-400"></i>
             </div>
@@ -151,9 +151,66 @@
         </div>
     </div>
 
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
     <script>
-        // Initialize Lucide Icons
         lucide.createIcons();
+
+        async function initDashboard() {
+            // 1. ตรวจสอบ User ID จากเครื่อง
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = '../../index.html'; // ถ้าไม่มีข้อมูลให้เด้งกลับไป Login
+                return;
+            }
+
+            try {
+                // 2. ดึงข้อมูลพนักงานจาก API
+                const user = await API.users.getById(userId);
+                document.getElementById('user-name').innerText = user.firstName + ' ' + user.lastName;
+                document.getElementById('user-role-dept').innerText = `${user.role} - ${user.department}`;
+
+                // 3. ดึงรายการการลาจริงมานับสถานะและแสดงผลล่าสุด
+                const leaves = await API.leaves.getAll(userId);
+                
+                // นับจำนวนสถานะต่างๆ
+                const pending = leaves.filter(l => l.status.toLowerCase() === 'pending').length;
+                const approved = leaves.filter(l => l.status.toLowerCase() === 'approved').length;
+                
+                // อัปเดตตัวเลขลงใน ID ที่เราเพิ่งสร้างไว้ใน HTML
+                document.getElementById('total-req').innerText = leaves.length;
+                document.getElementById('pending-req').innerText = pending;
+                document.getElementById('total-dayoff').innerText = approved; // สมมติว่านับเฉพาะที่อนุมัติแล้ว
+
+                // 4. Render รายการล่าสุด
+                renderRecentRequests(leaves);
+
+            } catch (error) {
+                UI.showToast('ไม่สามารถดึงข้อมูลได้: ' + error.message, 'error');
+            }
+        }
+
+        // ฟังก์ชันสำหรับสร้าง Card รายการลาล่าสุดแบบ Dynamic
+        function renderRecentRequests(leaves) {
+            const container = document.getElementById('recent-requests');
+            container.innerHTML = leaves.slice(0, 3).map(req => `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border">
+                    <div class="flex justify-between mb-3">
+                        <h4 class="font-bold">${req.type}</h4>
+                        ${UI.getStatusBadge(req.status)} 
+                    </div>
+                    <p class="text-sm text-gray-500 flex items-center space-x-2">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
+                    </p>
+                    <p class="text-sm text-gray-700 mt-1 italic leading-relaxed">Reason: ${req.reason}</p>
+                </div>
+            `).join('');
+            lucide.createIcons(); // วาด Icon ใหม่หลังจากใส่ HTML เข้าไป
+        }
+
+        // เรียกทำงานเมื่อโหลดหน้าสำเร็จ
+        window.onload = initDashboard;
 
         function checkRules() {
             const type = document.getElementById('leaveType').value;
@@ -201,6 +258,36 @@
             const modal = document.getElementById('leaveModal');
             modal.classList.toggle('hidden');
         }
+
+        document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const leaveData = {
+            employeeId: localStorage.getItem('userId'),
+            type: document.getElementById('leaveType').value,
+            startDate: document.getElementById('startDate').value,
+            endDate: document.getElementById('endDate').value,
+            reason: document.getElementById('description').value,
+            status: 'Pending',
+            requestedDate: new Date().toISOString()
+        };
+
+        // ใช้ Logic การตรวจสอบกฎจากไฟล์ app.js ที่เพื่อนเตรียมไว้
+        const validation = LeaveRequest.validate(leaveData.type, leaveData.startDate, leaveData.endDate);
+        if (!validation.valid) {
+            UI.showToast(validation.message, 'warning');
+            return;
+        }
+
+        try {
+            await API.leaves.create(leaveData);
+            UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
+            toggleModal();
+            initDashboard(); // โหลดหน้าใหม่เพื่อดูรายการที่เพิ่งส่งไป
+        } catch (error) {
+            UI.showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+        }
+    });
     </script>
 </body>
 </html>

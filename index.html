@@ -94,8 +94,64 @@
     <script>
         lucide.createIcons();
 
+        // ส่วนการจัดการส่งฟอร์ม Login จริง
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // ดึงค่าจากช่อง Input
+            const employeeId = document.getElementById('employeeId').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // ยิง API ไปที่ Backend (ตรวจสอบ Endpoint /api/users/login กับเพื่อนอีกครั้ง)
+                const response = await API.request('/api/users/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        employeeId: employeeId, 
+                        password: password 
+                    })
+                });
+
+                if (response) {
+                    // 1. เก็บข้อมูลลงเครื่องเพื่อใช้ในหน้า Dashboard
+                    localStorage.setItem('userId', response.id);
+                    localStorage.setItem('userRole', response.role);
+                    localStorage.setItem('userName', response.firstName + ' ' + response.lastName);
+
+                    // 2. แสดงข้อความแจ้งเตือนสำเร็จ
+                    UI.showToast('เข้าสู่ระบบสำเร็จ', 'success');
+
+                    // 3. ตรวจสอบ Role และเปลี่ยนหน้าไปตามสิทธิ์
+                    const routes = {
+                        'Employee': 'pages/employee/dashboard.html',
+                        'Manager': 'pages/manager/dashboard.html',
+                        'HR': 'pages/hr/dashboard.html'
+                    };
+
+                    // ดีเลย์เล็กน้อยเพื่อให้ User เห็นข้อความ Success
+                    setTimeout(() => {
+                        window.location.href = routes[response.role] || 'pages/employee/dashboard.html';
+                    }, 1000);
+                }
+            } catch (error) {
+                // แสดงข้อความเมื่อเกิดข้อผิดพลาด (เช่น รหัสผิด หรือ Server ดับ)
+                UI.showToast('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, 'error');
+                console.error('Login Error:', error);
+            }
+        });
+
         // Quick login for demo
         function quickLogin(role) {
+            // 1. จำลองการเก็บข้อมูล (Mock Session)
+            // หมายเหตุ: ID นี้ต้องเป็น ID ที่มีอยู่จริงใน MongoDB ของเพื่อนคุณ
+            localStorage.setItem('userId', '65aced...'); // ใส่ ID จริงจากฐานข้อมูลเพื่อน
+            localStorage.setItem('userRole', role === 'employee' ? 'Employee' : (role === 'manager' ? 'Manager' : 'HR'));
+            localStorage.setItem('userName', 'Demo User');
+            
+            // 2. ใส่ Token ปลอมไว้ก่อน (เพื่อไม่ให้ api.js เด้งกลับ) 
+            // แต่เมื่อดึงข้อมูลจริงจาก API จะยังติด 401 อยู่จนกว่าจะได้ Token จริงจากเพื่อน
+            localStorage.setItem('token', 'mock_token_for_ui_testing');
+
             const routes = {
                 'employee': 'pages/employee/dashboard.html',
                 'manager': 'pages/manager/dashboard.html',

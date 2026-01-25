@@ -3,6 +3,7 @@
  */
 
 const API = {
+    // ใช้พอร์ต 5082 ตามที่ Server รันอยู่จริง
     baseUrl: CONFIG?.API_BASE_URL || 'http://localhost:5082',
 
     /**
@@ -10,9 +11,15 @@ const API = {
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
+        
+        // ดึง Token ที่เก็บไว้ตอน Login มาใช้งาน 
+        const token = localStorage.getItem('token');
+        
         const config = {
             headers: {
                 'Content-Type': 'application/json',
+                // แนบกุญแจ (Token) ไปใน Header 
+                'Authorization': token ? `Bearer ${token}` : '',
                 ...options.headers
             },
             ...options
@@ -20,6 +27,13 @@ const API = {
 
         try {
             const response = await fetch(url, config);
+            
+            // หาก Server ตอบกลับมาว่า 401 ให้เด้งกลับไปหน้า Login 
+            if (response.status === 401) {
+                localStorage.clear();
+                window.location.href = '../../index.html';
+                return;
+            }
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -33,61 +47,61 @@ const API = {
     },
 
     // ============================================
-    // User Endpoints
+    // User Endpoints (เติม /api นำหน้าตามโครงสร้าง Backend)
     // ============================================
     users: {
         async getAll() {
-            return API.request('/users/');
+            return API.request('/api/users');
         },
 
         async getById(id) {
-            return API.request(`/users/${id}`);
+            return API.request(`/api/users/${id}`);
         },
 
         async create(userData) {
-            return API.request('/users/', {
+            return API.request('/api/users', {
                 method: 'POST',
                 body: JSON.stringify(userData)
             });
         },
 
         async update(id, userData) {
-            return API.request(`/users/${id}`, {
+            return API.request(`/api/users/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(userData)
             });
         },
 
         async delete(id) {
-            return API.request(`/users/${id}`, {
+            return API.request(`/api/users/${id}`, {
                 method: 'DELETE'
             });
         }
     },
 
     // ============================================
-    // Leave Request Endpoints (placeholder)
+    // Leave Request Endpoints (เติม /api นำหน้า)
     // ============================================
     leaves: {
         async getAll(userId) {
-            return API.request(`/leaves/?user_id=${userId}`);
+            return API.request(`/api/leaves?user_id=${userId}`);
         },
 
         async create(leaveData) {
-            return API.request('/leaves/', {
+            return API.request('/api/leaves', {
                 method: 'POST',
                 body: JSON.stringify(leaveData)
             });
         },
 
         async approve(id) {
-            return API.request(`/leaves/${id}/approve`, {
+            return API.request(`/api/leaves/${id}/approve`, {
                 method: 'POST'
             });
         },
 
         async reject(id, reason) {
-            return API.request(`/leaves/${id}/reject`, {
+            return API.request(`/api/leaves/${id}/reject`, {
                 method: 'POST',
                 body: JSON.stringify({ reason })
             });
@@ -102,5 +116,5 @@ const API = {
     }
 };
 
-// Export for use in HTML
+// Export สำหรับเรียกใช้งานใน HTML
 window.API = API;

@@ -43,7 +43,12 @@
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-bold text-gray-800">Employees List</h2>
             <div class="relative w-64">
-                <input type="text" placeholder="Search employee..." class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <input 
+                    type="text" 
+                    oninput="searchEmployee(this.value)" 
+                    placeholder="Search employee..." 
+                    class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                >
                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
             </div>
         </div>
@@ -129,26 +134,48 @@
         </div>
     </div>
 
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
     <script>
-        const employees = [
-            { id: 1, name: "สมชาย ใจดี", dept: "IT Support", email: "somchai@company.com", phone: "081-234-5678", annual: 6 },
-            { id: 2, name: "มณี มีทรัพย์", dept: "Accounting", email: "manee@company.com", phone: "082-345-6789", annual: 7 },
-            { id: 3, name: "วิชัย ชนะศึก", dept: "Production", email: "wichai@company.com", phone: "083-456-7890", annual: 8 }
-        ];
+        lucide.createIcons();
 
-        function renderEmployees() {
+        let allEmployees = []; // เก็บข้อมูลพนักงานทั้งหมดไว้สำหรับแก้ไข
+
+        async function initManageInfo() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            try {
+                // 1. ดึงข้อมูลพนักงานทั้งหมดจาก API
+                allEmployees = await API.users.getAll();
+                renderEmployees(allEmployees);
+            } catch (error) {
+                UI.showToast('ไม่สามารถโหลดข้อมูลพนักงานได้: ' + error.message, 'error');
+            }
+        }
+
+        function renderEmployees(data) {
             const tbody = document.getElementById('employee-table-body');
-            tbody.innerHTML = employees.map(emp => `
-                <tr class="hover:bg-gray-50 transition">
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-gray-400">ไม่พบข้อมูลพนักงาน</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(emp => `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-50">
                     <td class="px-8 py-5 flex items-center space-x-4">
                         <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                             <i data-lucide="user" class="w-4 h-4"></i>
                         </div>
-                        <span class="font-bold">${emp.name}</span>
+                        <span class="font-bold text-gray-700">${emp.firstName} ${emp.lastName}</span>
                     </td>
-                    <td class="px-8 py-5 text-gray-500 font-medium">${emp.dept}</td>
+                    <td class="px-8 py-5 text-gray-500 font-medium">${emp.department || 'N/A'}</td>
                     <td class="px-8 py-5 text-right">
-                        <button onclick="openEditModal(${emp.id})" class="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2 ml-auto shadow-sm">
+                        <button onclick="openEditModal('${emp.id}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2 ml-auto shadow-sm">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                             <span>Edit Information</span>
                         </button>
@@ -158,14 +185,29 @@
             lucide.createIcons();
         }
 
+        // ฟังก์ชันค้นหาพนักงาน
+        function searchEmployee(query) {
+            const filtered = allEmployees.filter(emp => 
+                `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(query.toLowerCase()) ||
+                emp.department?.toLowerCase().includes(query.toLowerCase())
+            );
+            renderEmployees(filtered);
+        }
+
         function openEditModal(id) {
-            const emp = employees.find(e => e.id === id);
-            const nameParts = emp.name.split(" ");
-            document.getElementById('editFirstName').value = nameParts[0];
-            document.getElementById('editLastName').value = nameParts[1];
+            const emp = allEmployees.find(e => e.id === id);
+            if (!emp) return;
+
+            // ใส่ข้อมูลลงในฟอร์ม
+            document.getElementById('editFirstName').value = emp.firstName;
+            document.getElementById('editLastName').value = emp.lastName;
             document.getElementById('editEmail').value = emp.email;
-            document.getElementById('editPhone').value = emp.phone;
-            document.getElementById('quotaAnnual').value = emp.annual;
+            document.getElementById('editPhone').value = emp.phone || '';
+            document.getElementById('quotaAnnual').value = emp.annualLeaveQuota || 6;
+            
+            // เก็บ ID พนักงานที่จะแก้ไว้ใน Form attribute
+            document.getElementById('editForm').setAttribute('data-user-id', id);
+            
             document.getElementById('editModal').classList.remove('hidden');
         }
 
@@ -173,7 +215,31 @@
             document.getElementById('editModal').classList.add('hidden');
         }
 
-        window.onload = renderEmployees;
+        // จัดการการบันทึกข้อมูล
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = e.target.getAttribute('data-user-id');
+            
+            const updateData = {
+                firstName: document.getElementById('editFirstName').value,
+                lastName: document.getElementById('editLastName').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                annualLeaveQuota: parseInt(document.getElementById('quotaAnnual').value)
+            };
+
+            try {
+                // ส่งข้อมูลไป Update ที่ Backend
+                await API.users.update(id, updateData);
+                UI.showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+                closeEditModal();
+                initManageInfo(); // โหลดรายการใหม่
+            } catch (error) {
+                UI.showToast('บันทึกไม่สำเร็จ: ' + error.message, 'error');
+            }
+        });
+
+        window.onload = initManageInfo;
     </script>
 </body>
 </html>
