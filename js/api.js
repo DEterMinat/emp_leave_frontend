@@ -84,25 +84,29 @@ const API = {
     // ============================================
     leaves: {
         async getAll(userId) {
-            return API.request(`/api/leaves?user_id=${userId}`);
+            // เปลี่ยนจาก /api/leaves?userId=... เป็น /api/LeaveRequests/employee/...
+            return API.request(`/api/LeaveRequests/employee/${userId}`);
         },
 
         async create(leaveData) {
-            return API.request('/api/leaves', {
+            // เปลี่ยนจาก /api/leaves เป็น /api/LeaveRequests
+            return API.request('/api/LeaveRequests', {
                 method: 'POST',
                 body: JSON.stringify(leaveData)
             });
         },
 
         async approve(id) {
-            return API.request(`/api/leaves/${id}/approve`, {
-                method: 'POST'
+            // Swagger ระบุว่าเป็น PUT และทางเข้าคือ /api/LeaveRequests/{id}/approve
+            return API.request(`/api/LeaveRequests/${id}/approve`, {
+                method: 'PUT' // เปลี่ยนจาก POST เป็น PUT
             });
         },
 
         async reject(id, reason) {
-            return API.request(`/api/leaves/${id}/reject`, {
-                method: 'POST',
+            // Swagger ระบุว่าเป็น PUT และทางเข้าคือ /api/LeaveRequests/{id}/reject
+            return API.request(`/api/LeaveRequests/${id}/reject`, {
+                method: 'PUT', // เปลี่ยนจาก POST เป็น PUT
                 body: JSON.stringify({ reason })
             });
         }

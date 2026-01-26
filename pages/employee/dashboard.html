@@ -21,7 +21,7 @@
                         <p class="text-sm text-gray-500" id="user-role-dept">Role - Department</p>
                     </div>
                 </div>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
+                <button onclick="toggleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
                     <i data-lucide="plus-circle" class="w-5 h-5"></i>
                     <span>New Request</span>
                 </button>
@@ -98,54 +98,56 @@
             </div>
         </div>
     </main>
-    <div id="leaveModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">Request Leave</h3>
-                <button onclick="toggleModal()" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x"></i>
+    <div id="leaveModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all border border-gray-100">
+            <div class="p-8 border-b flex justify-between items-center bg-white relative">
+                <h3 class="text-2xl font-bold text-gray-800 w-full text-center">Request Leave</h3>
+                <button onclick="toggleModal()" class="absolute right-6 p-2 hover:bg-gray-100 rounded-full transition">
+                    <i data-lucide="x" class="w-6 h-6 text-gray-400"></i>
                 </button>
             </div>
             
-            <form id="leaveForm" class="p-6 space-y-4">
+            <form id="leaveForm" class="p-8 space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
-                    <select id="leaveType" onchange="checkRules()" class="w-full border rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="annual">Annual Leave (ลาพักผ่อน)</option>
-                        <option value="sick">Sick Leave (ลาป่วย)</option>
-                        <option value="personal">Personal Leave (ลากิจส่วนตัว)</option>
-                        <option value="ordination">Ordination Leave (ลาอุปสมบท)</option>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leave Type</label>
+                    <select id="leaveType" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium appearance-none">
+                        <option value="">Select Leave Type</option>
+                        <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
+                        <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
+                        <option value="ID_ของ_PersonalLeave_จาก_Swagger">Personal Leave (ลากิจส่วนตัว)</option>
                     </select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                        <input type="date" id="startDate" onchange="calculateDays()" class="w-full border rounded-xl px-4 py-2.5 bg-gray-50 outline-none">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Start Date</label>
+                        <input type="date" id="startDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                        <input type="date" id="endDate" onchange="calculateDays()" class="w-full border rounded-xl px-4 py-2.5 bg-gray-50 outline-none">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">End Date</label>
+                        <input type="date" id="endDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="description" rows="3" placeholder="Reason for leave..." class="w-full border rounded-xl px-4 py-2.5 bg-gray-50 outline-none"></textarea>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Description</label>
+                    <textarea id="description" rows="3" placeholder="Description" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                 </div>
 
-                <div id="attachmentSection" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Attachments (Required)</label>
-                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:bg-gray-50 transition cursor-pointer">
-                        <i data-lucide="upload-cloud" class="mx-auto text-gray-400 mb-2"></i>
-                        <p class="text-xs text-gray-500">Click to upload or drag and drop</p>
-                        <input type="file" class="hidden" id="fileInput">
+                <div id="attachmentSection">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Attachments</label>
+                    <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-gray-100 rounded-[2rem] p-10 text-center hover:bg-gray-50 transition cursor-pointer group relative">
+                        <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-12 h-12 group-hover:text-blue-400 transition"></i>
+                        <p class="text-sm font-medium text-gray-400">Click to upload or drag and drop</p>
+                        <p class="text-[10px] text-gray-300 mt-1 uppercase">PDF, DOC, JPG, PNG MAX(10MB)</p>
+                        <input type="file" class="hidden" id="fileInput" multiple onchange="handleFiles(this.files)">
                     </div>
+                    <div id="file-list" class="mt-4 space-y-2"></div>
                 </div>
 
-                <div class="flex space-x-3 pt-4">
-                    <button type="button" onclick="toggleModal()" class="flex-1 px-4 py-3 border rounded-xl text-gray-600 font-semibold hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-lg shadow-blue-200">Submit Request</button>
+                <div class="grid grid-cols-2 gap-4 pt-4">
+                    <button type="button" onclick="toggleModal()" class="py-4 border border-gray-100 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">Submit Request</button>
                 </div>
             </form>
         </div>
@@ -167,8 +169,8 @@
             try {
                 // 2. ดึงข้อมูลพนักงานจาก API
                 const user = await API.users.getById(userId);
-                document.getElementById('user-name').innerText = user.firstName + ' ' + user.lastName;
-                document.getElementById('user-role-dept').innerText = `${user.role} - ${user.department}`;
+                document.getElementById('user-name').innerText = user.username || 'Employee'; 
+                document.getElementById('user-role-dept').innerText = `${user.roleName || 'N/A'}`;
 
                 // 3. ดึงรายการการลาจริงมานับสถานะและแสดงผลล่าสุด
                 const leaves = await API.leaves.getAll(userId);
@@ -196,7 +198,7 @@
             container.innerHTML = leaves.slice(0, 3).map(req => `
                 <div class="bg-white p-5 rounded-2xl shadow-sm border">
                     <div class="flex justify-between mb-3">
-                        <h4 class="font-bold">${req.type}</h4>
+                        <h4 class="font-bold">${req.leaveTypeName || req.type || 'Leave Request'}</h4>
                         ${UI.getStatusBadge(req.status)} 
                     </div>
                     <p class="text-sm text-gray-500 flex items-center space-x-2">
@@ -215,7 +217,7 @@
         function checkRules() {
             const type = document.getElementById('leaveType').value;
             const attachment = document.getElementById('attachmentSection');
-            const startDate = new document.getElementById('startDate').value;
+            const startDate = document.getElementById('startDate').value;
             
             // กฎการลาป่วย: หากลาเกิน 3 วันต้องแนบใบรับรองแพทย์ 
             // (ส่วนนี้จะเช็คละเอียดขึ้นใน calculateDays)
@@ -260,34 +262,84 @@
         }
 
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+            e.preventDefault();
 
-        const leaveData = {
-            employeeId: localStorage.getItem('userId'),
-            type: document.getElementById('leaveType').value,
-            startDate: document.getElementById('startDate').value,
-            endDate: document.getElementById('endDate').value,
-            reason: document.getElementById('description').value,
-            status: 'Pending',
-            requestedDate: new Date().toISOString()
-        };
+            // 1. เตรียมข้อมูลให้ตรงกับ Schema ใน Swagger
+            const leaveData = {
+                employeeId: localStorage.getItem('userId'), // ดึง ID จากเครื่อง
+                leaveTypeId: document.getElementById('leaveType').value, // ต้องเป็น ID จริงจาก DB
+                startDate: new Date(document.getElementById('startDate').value).toISOString(), // แปลงเป็น ISO String
+                endDate: new Date(document.getElementById('endDate').value).toISOString(), // แปลงเป็น ISO String
+                reason: document.getElementById('description').value
+            };
 
-        // ใช้ Logic การตรวจสอบกฎจากไฟล์ app.js ที่เพื่อนเตรียมไว้
-        const validation = LeaveRequest.validate(leaveData.type, leaveData.startDate, leaveData.endDate);
-        if (!validation.valid) {
-            UI.showToast(validation.message, 'warning');
-            return;
-        }
+            // 2. ตรวจสอบเบื้องต้น (Validation)
+            if (!leaveData.leaveTypeId || !leaveData.startDate || !leaveData.endDate || !leaveData.reason) {
+                UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+                return;
+            }
 
-        try {
-            await API.leaves.create(leaveData);
-            UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
-            toggleModal();
-            initDashboard(); // โหลดหน้าใหม่เพื่อดูรายการที่เพิ่งส่งไป
-        } catch (error) {
-            UI.showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-        }
-    });
+            try {
+                await API.leaves.create(leaveData);
+                UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
+                
+                // *** เพิ่ม 3 บรรทัดนี้เพื่อล้างค่าทั้งหมด ***
+                document.getElementById('leaveForm').reset(); // ล้างตัวอักษรในฟอร์ม
+                uploadedFiles = []; // ล้างรายการไฟล์ในโปรแกรม
+                document.getElementById('file-list').innerHTML = ''; // ล้างชื่อไฟล์บนหน้าจอ
+                
+                toggleModal();
+                initDashboard(); 
+            } catch (error) {
+                // หากยังติด 400 ให้ตรวจสอบใน Console ว่า Server แจ้ง Error ที่ฟิลด์ไหน
+                UI.showToast('ส่งใบลาไม่สำเร็จ: ' + error.message, 'error');
+            }
+        });
+
+    // ฟังก์ชันจัดการไฟล์อัปโหลด
+    let uploadedFiles = [];
+
+    function handleFiles(files) {
+        const fileList = document.getElementById('file-list');
+        
+        Array.from(files).forEach(file => {
+            // ป้องกันไฟล์ซ้ำ
+            if (uploadedFiles.some(f => f.name === file.name)) return;
+            
+            uploadedFiles.push(file);
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = "flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 mb-2";
+            fileItem.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="file-text" class="w-5 h-5 text-gray-400"></i>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">${file.name}</p>
+                        <p class="text-xs text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                </div>
+                <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:bg-red-50 p-1 rounded-full transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            `;
+            fileList.appendChild(fileItem);
+        });
+        lucide.createIcons();
+    }
+
+    function removeFile(fileName) {
+        // 1. กรองไฟล์ที่ต้องการลบออก
+        uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
+        
+        // 2. เคลียร์ UI เดิมทิ้ง
+        const fileList = document.getElementById('file-list');
+        fileList.innerHTML = '';
+        
+        // 3. วาดใหม่จากรายการไฟล์ที่เหลือ
+        const tempFiles = [...uploadedFiles];
+        uploadedFiles = []; // ล้างชั่วคราวเพื่อใช้ handleFiles วาดใหม่
+        handleFiles(tempFiles);
+    }
     </script>
 </body>
 </html>
