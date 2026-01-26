@@ -68,21 +68,7 @@
                 </button>
             </form>
 
-            <!-- Demo Quick Login -->
-            <div class="mt-6 pt-6 border-t border-gray-100">
-                <p class="text-center text-sm text-gray-500 mb-4">Quick Login (Demo)</p>
-                <div class="grid grid-cols-3 gap-3">
-                    <button onclick="quickLogin('employee')" class="py-2 px-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition">
-                        Employee
-                    </button>
-                    <button onclick="quickLogin('manager')" class="py-2 px-3 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition">
-                        Manager
-                    </button>
-                    <button onclick="quickLogin('hr')" class="py-2 px-3 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-100 transition">
-                        HR
-                    </button>
-                </div>
-            </div>
+            <!-- Quick Login removed for production -->
         </div>
 
         <p class="text-center text-sm text-gray-400 mt-6">
@@ -140,38 +126,7 @@
             }
         });
 
-        // Quick login for demo
-        function quickLogin(role) {
-            // 1. จำลองการเก็บข้อมูล (Mock Session)
-            // หมายเหตุ: ID นี้ต้องเป็น ID ที่มีอยู่จริงใน MongoDB ของเพื่อนคุณ
-            localStorage.setItem('userId', '65aced...'); // ใส่ ID จริงจากฐานข้อมูลเพื่อน
-            localStorage.setItem('userRole', role === 'employee' ? 'Employee' : (role === 'manager' ? 'Manager' : 'HR'));
-            localStorage.setItem('userName', 'Demo User');
-            
-            // 2. ใส่ Token ปลอมไว้ก่อน (เพื่อไม่ให้ api.js เด้งกลับ) 
-            // แต่เมื่อดึงข้อมูลจริงจาก API จะยังติด 401 อยู่จนกว่าจะได้ Token จริงจากเพื่อน
-            localStorage.setItem('token', 'mock_token_for_ui_testing');
 
-            const routes = {
-                'employee': 'pages/employee/dashboard.html',
-                'manager': 'pages/manager/dashboard.html',
-                'hr': 'pages/hr/dashboard.html'
-            };
-            window.location.href = routes[role];
-        }
-
-        // Form submit handler
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const employeeId = document.getElementById('employeeId').value;
-            const password = document.getElementById('password').value;
-            
-            // TODO: Implement actual authentication via API
-            console.log('Login attempt:', { employeeId, password });
-            
-            // Demo: redirect to employee dashboard
-            window.location.href = 'pages/employee/dashboard.html';
-        });
     </script>
 </body>
 </html>
