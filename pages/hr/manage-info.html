@@ -23,11 +23,15 @@
                 </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
-                <a href="dashboard-hr.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="manage-request-hr.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>My Request</span>
+                </a>    
+                <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                     <span>Manage Request</span>
                 </a>
@@ -166,16 +170,15 @@
             }
 
             tbody.innerHTML = data.map(emp => `
-                <tr class="hover:bg-gray-50 transition border-b border-gray-50">
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
                     <td class="px-8 py-5 flex items-center space-x-4">
                         <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                             <i data-lucide="user" class="w-4 h-4"></i>
                         </div>
-                        <span class="font-bold text-gray-700">${emp.firstName} ${emp.lastName}</span>
+                        <span class="font-bold text-gray-700">${emp.username || 'No Username'}</span>
                     </td>
-                    <td class="px-8 py-5 text-gray-500 font-medium">${emp.department || 'N/A'}</td>
-                    <td class="px-8 py-5 text-right">
-                        <button onclick="openEditModal('${emp.id}')" class="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2 ml-auto shadow-sm">
+                    <td class="px-8 py-5 text-gray-500 font-medium">${emp.roleName || 'N/A'}</td> <td class="px-8 py-5 text-right">
+                        <button onclick="openEditModal('${emp.id}')" class="...">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                             <span>Edit Information</span>
                         </button>
@@ -194,20 +197,19 @@
             renderEmployees(filtered);
         }
 
+        // แก้ไขบรรทัดที่ 132 ใน manage-info.html
         function openEditModal(id) {
             const emp = allEmployees.find(e => e.id === id);
             if (!emp) return;
 
-            // ใส่ข้อมูลลงในฟอร์ม
-            document.getElementById('editFirstName').value = emp.firstName;
-            document.getElementById('editLastName').value = emp.lastName;
-            document.getElementById('editEmail').value = emp.email;
+            // เปลี่ยนมาแสดง username ในช่อง First Name ไปก่อนเพื่อให้เห็นข้อมูล
+            document.getElementById('editFirstName').value = emp.username; 
+            document.getElementById('editLastName').value = ''; // ปล่อยว่างไว้
+            document.getElementById('editEmail').value = emp.email || ''; // ถ้าใน DB ไม่มีจะเป็นค่าว่าง
             document.getElementById('editPhone').value = emp.phone || '';
             document.getElementById('quotaAnnual').value = emp.annualLeaveQuota || 6;
             
-            // เก็บ ID พนักงานที่จะแก้ไว้ใน Form attribute
             document.getElementById('editForm').setAttribute('data-user-id', id);
-            
             document.getElementById('editModal').classList.remove('hidden');
         }
 
@@ -221,13 +223,12 @@
             const id = e.target.getAttribute('data-user-id');
             
             const updateData = {
-                firstName: document.getElementById('editFirstName').value,
-                lastName: document.getElementById('editLastName').value,
+                username: document.getElementById('editFirstName').value, 
                 email: document.getElementById('editEmail').value,
                 phone: document.getElementById('editPhone').value,
                 annualLeaveQuota: parseInt(document.getElementById('quotaAnnual').value)
             };
-
+            
             try {
                 // ส่งข้อมูลไป Update ที่ Backend
                 await API.users.update(id, updateData);

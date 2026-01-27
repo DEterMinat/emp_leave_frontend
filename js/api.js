@@ -51,29 +51,29 @@ const API = {
     // ============================================
     users: {
         async getAll() {
-            return API.request('/api/users');
+            return API.request('/api/Users');
         },
 
         async getById(id) {
-            return API.request(`/api/users/${id}`);
+            return API.request(`/api/Users/${id}`);
         },
 
         async create(userData) {
-            return API.request('/api/users', {
+            return API.request('/api/Users', {
                 method: 'POST',
                 body: JSON.stringify(userData)
             });
         },
 
         async update(id, userData) {
-            return API.request(`/api/users/${id}`, {
+            return API.request(`/api/Users/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(userData)
             });
         },
 
         async delete(id) {
-            return API.request(`/api/users/${id}`, {
+            return API.request(`/api/Users/${id}`, {
                 method: 'DELETE'
             });
         }
@@ -83,9 +83,13 @@ const API = {
     // Leave Request Endpoints (เติม /api นำหน้า)
     // ============================================
     leaves: {
-        async getAll(userId) {
-            // เปลี่ยนจาก /api/leaves?userId=... เป็น /api/LeaveRequests/employee/...
-            return API.request(`/api/LeaveRequests/employee/${userId}`);
+        async getAll(userId = null) {
+            // หากมี userId (หน้าพนักงาน) ให้ดึงเฉพาะคนนั้น
+            // หากไม่มี userId (หน้า HR/Manager) ให้ดึงทั้งหมดตาม Swagger
+            const endpoint = userId 
+                ? `/api/LeaveRequests/employee/${userId}` 
+                : '/api/LeaveRequests'; 
+            return API.request(endpoint);
         },
 
         async create(leaveData) {
@@ -96,19 +100,23 @@ const API = {
             });
         },
 
-        async approve(id) {
-            // Swagger ระบุว่าเป็น PUT และทางเข้าคือ /api/LeaveRequests/{id}/approve
+        approve(id, data) {
             return API.request(`/api/LeaveRequests/${id}/approve`, {
-                method: 'PUT' // เปลี่ยนจาก POST เป็น PUT
+                method: 'PUT',
+                body: JSON.stringify(data) // เพิ่มการส่ง Body
             });
         },
-
-        async reject(id, reason) {
-            // Swagger ระบุว่าเป็น PUT และทางเข้าคือ /api/LeaveRequests/{id}/reject
+        reject(id, data) {
             return API.request(`/api/LeaveRequests/${id}/reject`, {
-                method: 'PUT', // เปลี่ยนจาก POST เป็น PUT
-                body: JSON.stringify({ reason })
+                method: 'PUT',
+                body: JSON.stringify(data) // เพิ่มการส่ง Body
             });
+        }
+    },
+
+    references: {
+        async getLeaveTypes() {
+            return API.request('/api/LeaveTypes'); 
         }
     },
 

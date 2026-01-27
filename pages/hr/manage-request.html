@@ -23,7 +23,7 @@
                 </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
-                <a href="dashboard-hr.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
@@ -103,8 +103,8 @@
             try {
                 // 1. ดึงข้อมูลผู้ใช้งานปัจจุบันมาแสดงใน Navbar
                 const user = await API.users.getById(userId);
-                document.getElementById('user-name').innerText = user.firstName + ' ' + user.lastName;
-                document.getElementById('user-role-dept').innerText = `${user.role} - ${user.department}`;
+                document.getElementById('user-name').innerText = user.username || 'HR Manager'; 
+                document.getElementById('user-role-dept').innerText = user.roleName || 'Human Resources';
 
                 // 2. ดึงรายการใบลาทั้งหมดจาก API
                 // หมายเหตุ: สำหรับ HR เราจะดึงข้อมูลทั้งหมดมา Filter เฉพาะ Pending
@@ -163,8 +163,8 @@
             content.innerHTML = `
                 <div class="p-4 bg-gray-50 rounded-2xl">
                     <p class="text-xs text-gray-400 uppercase font-bold mb-1">Employee</p>
-                    <p class="font-bold text-lg">${req.employeeName || 'พนักงาน'}</p>
-                    <p class="text-blue-600 text-sm font-medium">${req.type}</p>
+                    <p class="font-bold text-lg">${req.employeeName || req.username || 'พนักงาน'}</p>
+                    <p class="text-blue-600 text-sm font-medium">${req.leaveTypeName || req.type || 'ประเภทการลา'}</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 uppercase font-bold mb-1">Reason</p>
@@ -181,23 +181,28 @@
         // ฟังก์ชันตัดสินใจอนุมัติ/ปฏิเสธจริงผ่าน API
         async function handleDecision(decision) {
             try {
+                const hrId = localStorage.getItem('userId'); // ดึง ID ของคุณ (HR)
+                const payload = {
+                    approverId: hrId,
+                    comment: decision === 'Approved' ? "Approved by HR" : "Rejected by HR"
+                };
+
                 if (decision === 'Approved') {
-                    await API.leaves.approve(currentActiveId);
+                    await API.leaves.approve(currentActiveId, payload); // ส่ง payload ไปด้วย!
                 } else {
                     const rejectReason = prompt("ระบุเหตุผลการปฏิเสธ:");
                     if (rejectReason === null) return;
-                    await API.leaves.reject(currentActiveId, rejectReason);
+                    payload.comment = rejectReason;
+                    await API.leaves.reject(currentActiveId, payload); // ส่ง payload ไปด้วย!
                 }
-
+                
                 UI.showToast(`จัดการใบลาสำเร็จ (${decision})`, 'success');
                 closeManageModal();
-                initManageRequests(); // โหลดรายการใหม่หลังจากกดอนุมัติ/ปฏิเสธ
-
+                initManageRequests(); 
             } catch (error) {
                 UI.showToast('ไม่สามารถดำเนินการได้: ' + error.message, 'error');
             }
         }
-
         window.onload = initManageRequests;
     </script>
 </body>

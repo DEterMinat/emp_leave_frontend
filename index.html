@@ -110,15 +110,21 @@
                     UI.showToast('เข้าสู่ระบบสำเร็จ', 'success');
 
                     // 3. ตรวจสอบ Role และเปลี่ยนหน้าไปตามสิทธิ์
+                    // Normalize the role name to handle different casings/variants
+                    const roleName = (response.roleName || '').toString().trim().toLowerCase();
+
                     const routes = {
-                        'Employee': 'pages/employee/dashboard.html',
-                        'Manager': 'pages/manager/dashboard.html',
-                        'HR': 'pages/hr/dashboard.html'
+                        'employee': 'pages/employee/dashboard.html',
+                        'manager': 'pages/manager/dashboard.html',
+                        'hr': 'pages/hr/dashboard.html',
+                        // treat admin as manager (admins should land on manager dashboard)
+                        'admin': 'pages/manager/dashboard.html'
                     };
 
-                    // ดีเลย์เล็กน้อยเพื่อให้ User เห็นข้อความ Success
+                    // Small delay so the user sees the success toast
+                    const targetRoute = routes[roleName] || 'pages/employee/dashboard.html';
                     setTimeout(() => {
-                        window.location.href = routes[response.roleName] || 'pages/employee/dashboard.html';
+                        window.location.href = targetRoute;
                     }, 1000);
                 }
             } catch (error) {

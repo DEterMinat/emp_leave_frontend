@@ -72,6 +72,21 @@ const UI = {
             'rejected': '<span class="badge badge-danger">Rejected</span>'
         };
         return badges[status.toLowerCase()] || `<span class="badge badge-info">${status}</span>`;
+    },
+
+    async fillLeaveTypes(selectElementId) {
+        try {
+            const types = await API.references.getLeaveTypes();
+            const select = document.getElementById(selectElementId);
+            if (!select) return;
+
+            // วาดตัวเลือกใหม่ โดยเก็บ "ค่าเริ่มต้น" ไว้
+            select.innerHTML = '<option value="">Select Leave Type</option>' + 
+                types.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
+        } catch (error) {
+            console.error('Failed to fill leave types:', error);
+            this.showToast('ไม่สามารถโหลดประเภทการลาได้', 'error');
+        }
     }
 };
 
