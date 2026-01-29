@@ -66,12 +66,18 @@ const UI = {
      * Get status badge HTML
      */
     getStatusBadge(status) {
-        const badges = {
-            'approved': '<span class="badge badge-success">Approved</span>',
-            'pending': '<span class="badge badge-warning">Pending</span>',
-            'rejected': '<span class="badge badge-danger">Rejected</span>'
-        };
-        return badges[status.toLowerCase()] || `<span class="badge badge-info">${status}</span>`;
+        const s = (status || '').toString().toLowerCase();
+        if (s === 'approved' || s === 'approve') {
+            return `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Approved</span>`;
+        }
+        if (s === 'pending') {
+            return `<span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">Pending</span>`;
+        }
+        if (s === 'rejected' || s === 'reject') {
+            return `<span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">Rejected</span>`;
+        }
+        // default neutral badge
+        return `<span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium">${status}</span>`;
     },
 
     async fillLeaveTypes(selectElementId) {

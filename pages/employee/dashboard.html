@@ -21,7 +21,7 @@
                         <p class="text-sm text-gray-500" id="user-role-dept">Role - Department</p>
                     </div>
                 </div>
-                <button onclick="toggleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
+                <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
                     <i data-lucide="plus-circle" class="w-5 h-5"></i>
                     <span>New Request</span>
                 </button>
@@ -98,65 +98,12 @@
             </div>
         </div>
     </main>
-    <div id="leaveModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all border border-gray-100">
-            <div class="p-8 border-b flex justify-between items-center bg-white relative">
-                <h3 class="text-2xl font-bold text-gray-800 w-full text-center">Request Leave</h3>
-                <button onclick="toggleModal()" class="absolute right-6 p-2 hover:bg-gray-100 rounded-full transition">
-                    <i data-lucide="x" class="w-6 h-6 text-gray-400"></i>
-                </button>
-            </div>
-            
-            <form id="leaveForm" class="p-8 space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leave Type</label>
-                    <select id="leaveType" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium appearance-none">
-                        <option value="">Select Leave Type</option>
-                        <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
-                        <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
-                        <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
-                        <option value="69783baa111b105aeac97905">Ordination Leave (ลาบวช)</option>
-                        <option value="69783bc5111b105aeac97906">Unpaid Leave (ลางานไม่รับเงิน)</option>
-                    </select>
-                </div>
 
-                <div class="grid grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Start Date</label>
-                        <input type="date" id="startDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">End Date</label>
-                        <input type="date" id="endDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Description</label>
-                    <textarea id="description" rows="3" placeholder="Description" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-
-                <div id="attachmentSection">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Attachments</label>
-                    <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-gray-100 rounded-[2rem] p-10 text-center hover:bg-gray-50 transition cursor-pointer group relative">
-                        <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-12 h-12 group-hover:text-blue-400 transition"></i>
-                        <p class="text-sm font-medium text-gray-400">Click to upload or drag and drop</p>
-                        <p class="text-[10px] text-gray-300 mt-1 uppercase">PDF, DOC, JPG, PNG MAX(10MB)</p>
-                        <input type="file" class="hidden" id="fileInput" multiple onchange="handleFiles(this.files)">
-                    </div>
-                    <div id="file-list" class="mt-4 space-y-2"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 pt-4">
-                    <button type="button" onclick="toggleModal()" class="py-4 border border-gray-100 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" class="py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">Submit Request</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Modal and its logic moved to a reusable file: js/leaveModal.js -->
 
     <script src="../../js/app.js"></script>
     <script src="../../js/api.js"></script>
+    <script src="../../js/leaveModal.js"></script>
     <script>
         lucide.createIcons();
 
@@ -216,132 +163,10 @@
         // เรียกทำงานเมื่อโหลดหน้าสำเร็จ
         window.onload = initDashboard;
 
-        function checkRules() {
-            const type = document.getElementById('leaveType').value;
-            const attachment = document.getElementById('attachmentSection');
-            const startDate = document.getElementById('startDate').value;
-            
-            // กฎการลาป่วย: หากลาเกิน 3 วันต้องแนบใบรับรองแพทย์ 
-            // (ส่วนนี้จะเช็คละเอียดขึ้นใน calculateDays)
-            
-            // กฎการลากิจ: ต้องแนบเอกสารทุกครั้ง 
-            if (type === 'personal' || type === 'ordination') {
-                attachment.classList.remove('hidden');
-            } else {
-                attachment.classList.add('hidden');
-            }
-        }
-
-        function calculateDays() {
-            const start = new Date(document.getElementById('startDate').value);
-            const end = new Date(document.getElementById('endDate').value);
-            const type = document.getElementById('leaveType').value;
-            const today = new Date();
-
-            if (start && end && end >= start) {
-                const diffTime = Math.abs(end - start);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-                // เช็คกฎลาป่วย > 3 วัน 
-                if (type === 'sick' && diffDays > 3) {
-                    document.getElementById('attachmentSection').classList.remove('hidden');
-                    alert("ลาป่วยเกิน 3 วัน กรุณาแนบใบรับรองแพทย์ ");
-                }
-
-                // เช็คการลาล่วงหน้า: ลากิจ 3 วัน , ลาพักผ่อน 7 วัน 
-                const leadTime = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-                if (type === 'personal' && leadTime < 3) {
-                    alert("ลากิจส่วนตัวต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน ");
-                } else if (type === 'annual' && leadTime < 7) {
-                    alert("ลาพักผ่อนต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน ");
-                }
-            }
-        }
-
-        function toggleModal() {
-            const modal = document.getElementById('leaveModal');
-            modal.classList.toggle('hidden');
-        }
-
-        document.getElementById('leaveForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            // 1. เตรียมข้อมูลให้ตรงกับ Schema ใน Swagger
-            const leaveData = {
-                employeeId: localStorage.getItem('userId'), // ดึง ID จากเครื่อง
-                leaveTypeId: document.getElementById('leaveType').value, // ต้องเป็น ID จริงจาก DB
-                startDate: new Date(document.getElementById('startDate').value).toISOString(), // แปลงเป็น ISO String
-                endDate: new Date(document.getElementById('endDate').value).toISOString(), // แปลงเป็น ISO String
-                reason: document.getElementById('description').value
-            };
-
-            // 2. ตรวจสอบเบื้องต้น (Validation)
-            if (!leaveData.leaveTypeId || !leaveData.startDate || !leaveData.endDate || !leaveData.reason) {
-                UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
-                return;
-            }
-
-            try {
-                await API.leaves.create(leaveData);
-                UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
-                
-                // *** เพิ่ม 3 บรรทัดนี้เพื่อล้างค่าทั้งหมด ***
-                document.getElementById('leaveForm').reset(); // ล้างตัวอักษรในฟอร์ม
-                uploadedFiles = []; // ล้างรายการไฟล์ในโปรแกรม
-                document.getElementById('file-list').innerHTML = ''; // ล้างชื่อไฟล์บนหน้าจอ
-                
-                toggleModal();
-                initDashboard(); 
-            } catch (error) {
-                // หากยังติด 400 ให้ตรวจสอบใน Console ว่า Server แจ้ง Error ที่ฟิลด์ไหน
-                UI.showToast('ส่งใบลาไม่สำเร็จ: ' + error.message, 'error');
-            }
+        // Refresh dashboard when a leave is submitted through the shared modal
+        document.addEventListener('leaveSubmitted', () => {
+            initDashboard();
         });
-
-    // ฟังก์ชันจัดการไฟล์อัปโหลด
-    let uploadedFiles = [];
-
-    function handleFiles(files) {
-        const fileList = document.getElementById('file-list');
-        
-        Array.from(files).forEach(file => {
-            // ป้องกันไฟล์ซ้ำ
-            if (uploadedFiles.some(f => f.name === file.name)) return;
-            
-            uploadedFiles.push(file);
-            
-            const fileItem = document.createElement('div');
-            fileItem.className = "flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 mb-2";
-            fileItem.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <i data-lucide="file-text" class="w-5 h-5 text-gray-400"></i>
-                    <div>
-                        <p class="text-sm font-medium text-gray-700">${file.name}</p>
-                        <p class="text-xs text-gray-400">${(file.size / 1024).toFixed(2)} KB</p>
-                    </div>
-                </div>
-                <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:bg-red-50 p-1 rounded-full transition">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-            `;
-            fileList.appendChild(fileItem);
-        });
-        lucide.createIcons();
-    }
-
-    function removeFile(fileName) {
-        // 1. กรองไฟล์ที่ต้องการลบออก
-        uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
-        
-        // 2. เคลียร์ UI เดิมทิ้ง
-        const fileList = document.getElementById('file-list');
-        fileList.innerHTML = '';
-        
-        // 3. วาดใหม่จากรายการไฟล์ที่เหลือ
-        const tempFiles = [...uploadedFiles];
-        uploadedFiles = []; // ล้างชั่วคราวเพื่อใช้ handleFiles วาดใหม่
-        handleFiles(tempFiles);
-    }
     </script>
 </body>
 </html>
