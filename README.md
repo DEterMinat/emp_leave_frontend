@@ -1,58 +1,129 @@
 # Employee Leave System - Frontend
 
-ระบบจัดการลางานพนักงาน (Frontend)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3)](https://developer.mozilla.org/en-US/docs/Web/CSS)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 
-## 📁 โครงสร้าง
+Modern web frontend for Employee Leave Management System with real-time notifications.
+
+## ✨ Features
+
+- 🎨 **Modern UI** - Clean, responsive design with gradient themes
+- 🔐 **Role-Based Access** - Employee, Manager, HR dashboards
+- 🔔 **Real-time Notifications** - SignalR integration for instant updates
+- 📊 **Statistics Dashboard** - Visual charts and analytics
+- 🐳 **Docker Ready** - Nginx serving with load balancing support
+
+## 📁 Project Structure
 
 ```
 emp_leave_frontend/
-├── assets/
-│   ├── images/           # รูปภาพ, logos
-│   └── fonts/            # Custom fonts
+├── index.html                    # Login page
 ├── css/
-│   └── style.css         # Global styles
+│   └── style.css                 # Global styles
 ├── js/
-│   ├── app.js            # Main application logic
-│   └── api.js            # API client
-├── data/
-│   └── mock-data.js      # Mock data for testing
+│   ├── app.js                    # Main application logic
+│   ├── api.js                    # Backend API client
+│   └── notifications.js          # SignalR client
 ├── pages/
-│   ├── employee/         # หน้าสำหรับพนักงาน
+│   ├── employee/                 # Employee portal
 │   │   ├── dashboard.html
 │   │   └── my-request.html
-│   ├── manager/          # หน้าสำหรับผู้จัดการ
+│   ├── manager/                  # Manager portal
 │   │   ├── dashboard.html
 │   │   ├── teams.html
 │   │   └── statistics.html
-│   └── hr/               # หน้าสำหรับ HR
+│   └── hr/                       # HR portal
 │       ├── dashboard.html
 │       ├── manage-info.html
 │       └── manage-request.html
-├── index.html            # Login page
-└── README.md
+├── Dockerfile                    # Nginx-based container
+└── docker-compose.yml            # Full stack orchestration
 ```
 
-## 🚀 การใช้งาน
+## 🚀 Quick Start
 
-1. **ด้วย Live Server (แนะนำ)**
+### Local Development
 
-   - ติดตั้ง Live Server extension ใน VS Code
-   - คลิกขวาที่ `index.html` → "Open with Live Server"
+1. **Using Live Server (Recommended)**
 
-2. **เปิดตรง**
-   - เปิดไฟล์ `index.html` ใน browser
+   ```bash
+   # Install Live Server extension in VS Code
+   # Right-click index.html → "Open with Live Server"
+   ```
 
-## 🔗 Backend API
+2. **Using Python**
+   ```bash
+   python -m http.server 3000
+   # Open http://localhost:3000
+   ```
 
-Frontend นี้ใช้งานร่วมกับ Backend ที่รันบน:
+### Docker Deployment
 
-- **URL:** `http://localhost:8000`
-- **Docs:** `http://localhost:8000/docs`
+```bash
+# Create .env file
+echo "MONGODB_URL=mongodb+srv://..." > .env
+echo "DB_NAME=emp-leave" >> .env
 
-## 📂 การจัดการไฟล์
+# Start all services
+docker-compose up --build
 
-| Role     | Dashboard                       | Pages                       |
-| -------- | ------------------------------- | --------------------------- |
-| Employee | `pages/employee/dashboard.html` | my-request                  |
-| Manager  | `pages/manager/dashboard.html`  | teams, statistics           |
-| HR       | `pages/hr/dashboard.html`       | manage-info, manage-request |
+# Access at http://localhost:8080
+```
+
+## 🔗 API Connection
+
+| Environment | Backend URL                      |
+| ----------- | -------------------------------- |
+| Development | `http://localhost:5000`          |
+| Docker      | `http://backend:8080` (internal) |
+| Production  | Configure in `js/api.js`         |
+
+## 📱 Role-Based Dashboards
+
+| Role         | Dashboard                        | Features                               |
+| ------------ | -------------------------------- | -------------------------------------- |
+| **Employee** | `/pages/employee/dashboard.html` | View balance, request leave, history   |
+| **Manager**  | `/pages/manager/dashboard.html`  | Approve/reject, team overview          |
+| **HR**       | `/pages/hr/dashboard.html`       | User management, reports, all requests |
+
+## 🔔 Real-time Notifications
+
+SignalR integration provides instant updates:
+
+- ✅ Leave request approved/rejected
+- 📩 New leave request submitted (for managers)
+- 📊 Balance updates
+
+```javascript
+// Notifications are handled automatically via notifications.js
+// Toast messages appear in the top-right corner
+```
+
+## 🐳 Docker Architecture
+
+```
+┌─────────────────────────────────────┐
+│              Nginx :80              │
+│         (Static file server)        │
+└─────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────┐
+│          Backend API :8080          │
+│        (Proxied via Nginx LB)       │
+└─────────────────────────────────────┘
+```
+
+## ⚙️ Configuration
+
+Update API base URL in `js/api.js`:
+
+```javascript
+const API_BASE_URL = "http://localhost:5000/api";
+```
+
+## 📄 License
+
+MIT License
