@@ -2,9 +2,11 @@
  * Employee Leave System - API Client
  */
 
+// Defensive read of CONFIG to avoid ReferenceError when scripts load out-of-order
+const _cfg = (typeof CONFIG !== 'undefined' && CONFIG) ? CONFIG : (window.CONFIG || null);
 const API = {
     // ใช้พอร์ต 5082 ตามที่ Server รันอยู่จริง
-    baseUrl: CONFIG?.API_BASE_URL || 'http://localhost:5082',
+    baseUrl: (_cfg && _cfg.API_BASE_URL) ? _cfg.API_BASE_URL : 'http://localhost:5082',
 
     /**
      * Make HTTP request
@@ -36,10 +38,23 @@ const API = {
             }
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Read response body (if any) to provide better error messages when status is 4xx/5xx
+                let bodyText = '';
+                try {
+                    bodyText = await response.text();
+                } catch (e) {
+                    bodyText = response.statusText || '';
+                }
+                const message = `HTTP ${response.status}: ${response.statusText}${bodyText ? ' - ' + bodyText : ''}`;
+                throw new Error(message);
             }
-            
-            return await response.json();
+
+            // Try to return JSON if possible, otherwise return text
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                return await response.json();
+            }
+            return await response.text();
         } catch (error) {
             console.error('API Error:', error);
             throw error;

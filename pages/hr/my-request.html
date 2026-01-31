@@ -135,11 +135,97 @@
                             <p class="text-orange-700 text-xs">${req.comment}</p>
                         </div>
                         ` : ''}
+                        <div class="pt-3 mt-3">
+                            ${(() => {
+                                const lid = req.id || req.leaveId || req._id || '';
+                                const has = (Array.isArray(req.attachments) && req.attachments.length) || (Array.isArray(req.files) && req.files.length) || (req.attachmentUrls && req.attachmentUrls.length) || req.fileUrl || req.attachmentUrl;
+                                return `<button data-leave-id="${lid}" onclick="openAttachmentViewerById('${lid}')" class="px-3 py-2 ${has ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 cursor-default'} rounded-lg text-sm transition">View Attachments</button>`;
+                            })()}
+                        </div>
                     </div>
                 </div>
             `).join('');
 
             lucide.createIcons();
+        }
+
+        // Attachment viewer modal (shared behavior for HR page)
+        // Modal HTML
+        const attachmentModalHtml = `
+    <div id="attachmentViewer" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Attachments</h3>
+                <button onclick="closeAttachmentViewer()" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            <div id="attachment-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+    </div>`;
+
+        // Inject modal into DOM once
+        if (!document.getElementById('attachmentViewer')) {
+            const div = document.createElement('div');
+            div.innerHTML = attachmentModalHtml;
+            document.body.appendChild(div.firstElementChild);
+            lucide.createIcons();
+        }
+
+        // Open viewer by id (use allLeaves lookup)
+        function openAttachmentViewerById(id) {
+            const req = allLeaves.find(l => (l.id === id || l.leaveId === id || l._id === id));
+            if (!req) return UI.showToast('ไม่พบไฟล์แนบ', 'error');
+            openAttachmentViewer(req);
+        }
+
+        function openAttachmentViewer(req) {
+            const list = document.getElementById('attachment-list');
+            list.innerHTML = '';
+
+            // try to extract urls
+            const urls = [];
+            if (Array.isArray(req.attachments)) {
+                req.attachments.forEach(a => {
+                    if (typeof a === 'string') urls.push(a);
+                    else if (a.url) urls.push(a.url);
+                    else if (a.fileUrl) urls.push(a.fileUrl);
+                });
+            }
+            if (Array.isArray(req.files)) {
+                req.files.forEach(f => { if (f.url) urls.push(f.url); });
+            }
+            if (req.attachmentUrls) urls.push(...(req.attachmentUrls || []));
+            if (req.fileUrl) urls.push(req.fileUrl);
+            if (req.attachmentUrl) urls.push(req.attachmentUrl);
+
+            // Remove duplicates and normalize relative URLs
+            const uniq = [...new Set(urls)].map(u => {
+                if (!u) return null;
+                if (u.startsWith('http')) return u;
+                return (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl + u : u;
+            }).filter(Boolean);
+
+            if (uniq.length === 0) {
+                const fallback = (typeof API !== 'undefined' && API.baseUrl) ? `${API.baseUrl}/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments` : `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments`;
+                list.innerHTML = `<div class="col-span-full text-center py-8">No direct attachment URLs available. <a href="${fallback}" target="_blank" class="text-blue-600 underline">Open attachments endpoint</a></div>`;
+            } else {
+                list.innerHTML = uniq.map(u => {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(u);
+                    if (isImage) {
+                        return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank"><img src="${u}" class="max-h-40 object-contain" alt="attachment"></a></div>`;
+                    }
+                    return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" class="text-blue-600 underline">Open file</a></div>`;
+                }).join('');
+            }
+
+            document.getElementById('attachmentViewer').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeAttachmentViewer() {
+            const m = document.getElementById('attachmentViewer');
+            if (m) m.classList.add('hidden');
         }
 
         function filterStatus(status) {

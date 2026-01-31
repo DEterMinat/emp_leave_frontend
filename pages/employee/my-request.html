@@ -56,6 +56,19 @@
             </div>
     </main>
 
+    <!-- Attachment viewer modal -->
+    <div id="attachmentViewer" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Attachments</h3>
+                <button onclick="closeAttachmentViewer()" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            <div id="attachment-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
 
     <script src="../../js/app.js"></script>
     <script src="../../js/api.js"></script>
@@ -95,8 +108,9 @@
 
         function renderRequests(leaves) {
             const listContainer = document.getElementById('request-list');
-            
-            if (leaves.length === 0) {
+            const currentName = document.getElementById('user-name').innerText;
+
+            if (!leaves || leaves.length === 0) {
                 listContainer.innerHTML = '<p class="col-span-full text-center text-gray-400 py-10">ไม่พบประวัติการลา</p>';
                 return;
             }
@@ -108,35 +122,167 @@
                 else if (s === 'rejected' || s === 'reject') borderClass = 'border-red-200';
                 else if (s === 'pending') borderClass = 'border-yellow-200';
 
+                const lid = req.id || req.leaveId || req._id || '';
+                const typeLabel = req.leaveTypeName || req.type || 'Leave Request';
+                const days = req.totalDays || LeaveRequest.calculateDays(req.startDate, req.endDate) || 0;
+                const approverComment = req.comment || req.approverComment || req.approverRemarks || '';
+
                 return `
-                <div class="bg-white p-6 rounded-3xl shadow-sm border ${borderClass} hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border ${borderClass} hover:shadow-md transition-all relative overflow-hidden group">
                     <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h4 class="font-bold text-lg">${document.getElementById('user-name').innerText}</h4>
-                            <p class="text-sm font-medium text-blue-500">${req.type}</p>
+                            <h4 class="font-bold text-lg text-gray-800">${currentName}</h4>
+                            <p class="text-sm font-medium text-blue-500">${typeLabel}</p>
                         </div>
-                        ${UI.getStatusBadge(req.status)} 
+                        ${UI.getStatusBadge(req.status)}
                     </div>
-                    
-                    <div class="space-y-2 text-sm text-gray-500">
-                        <p class="flex items-center space-x-2 text-gray-600">
-                            <i data-lucide="calendar" class="w-4 h-4"></i>
+
+                    <div class="space-y-3 text-sm text-gray-500">
+                        <p class="flex items-center space-x-2 text-gray-600 bg-gray-50 p-2 rounded-lg">
+                            <i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i>
                             <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
                         </p>
-                        <p class="flex items-center space-x-2">
+                        <p class="flex items-center space-x-2 px-2">
                             <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
-                            <span>${LeaveRequest.calculateDays(req.startDate, req.endDate)} days</span>
+                            <span>${days} days</span>
                         </p>
-                        <div class="pt-3 border-t mt-3">
-                            <p class="text-xs text-gray-400 uppercase font-bold tracking-tight">Reason</p>
-                            <p class="text-gray-700 italic mt-1 leading-relaxed">"${req.reason || 'No reason provided'}"</p>
+                        <div class="pt-3 border-t border-dashed mt-3">
+                            <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Reason</p>
+                            <p class="text-gray-700 italic leading-relaxed">"${req.reason || 'ไม่ระบุเหตุผล'}"</p>
+                        </div>
+                        ${approverComment ? `
+                        <div class="pt-3 bg-orange-50 p-3 rounded-xl border border-orange-100 mt-2">
+                            <p class="text-xs text-orange-400 uppercase font-bold tracking-wider mb-1">Approver Comment</p>
+                            <p class="text-orange-700 text-xs">${approverComment}</p>
+                        </div>
+                        ` : ''}
+
+                        <div class="pt-3 mt-3">
+                            ${(() => {
+                                const has = hasAttachmentsPlaceholder(req);
+                                return `<button data-leave-id="${lid}" onclick="openAttachmentViewerById('${lid}')" class="px-3 py-2 ${has ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 cursor-default'} rounded-lg text-sm transition">View Attachments</button>`;
+                            })()}
                         </div>
                     </div>
                 </div>
             `;
             }).join('');
 
+            function hasAttachmentsPlaceholder(r) {
+                if (!r) return false;
+                if (Array.isArray(r.attachments) && r.attachments.length) return true;
+                if (Array.isArray(r.files) && r.files.length) return true;
+                if (r.attachmentUrls && r.attachmentUrls.length) return true;
+                if (r.fileUrl || r.attachmentUrl) return true;
+                return false;
+            }
+
             lucide.createIcons();
+        }
+
+        // Open viewer by id (use allLeaves lookup)
+        function openAttachmentViewerById(id) {
+            const req = allLeaves.find(l => (l.id === id || l.leaveId === id || l._id === id));
+            if (!req) return UI.showToast('ไม่พบไฟล์แนบ', 'error');
+            openAttachmentViewer(req);
+        }
+
+    async function openAttachmentViewer(req) {
+            const list = document.getElementById('attachment-list');
+            list.innerHTML = '';
+
+            // try to extract urls
+            const urls = [];
+            if (Array.isArray(req.attachments)) {
+                req.attachments.forEach(a => {
+                    if (typeof a === 'string') urls.push(a);
+                    else if (a.url) urls.push(a.url);
+                    else if (a.fileUrl) urls.push(a.fileUrl);
+                });
+            }
+            if (Array.isArray(req.files)) {
+                req.files.forEach(f => { if (f.url) urls.push(f.url); });
+            }
+            if (req.attachmentUrls) urls.push(...(req.attachmentUrls || []));
+            if (req.fileUrl) urls.push(req.fileUrl);
+            if (req.attachmentUrl) urls.push(req.attachmentUrl);
+
+            // Remove duplicates and normalize relative URLs
+            const uniq = [...new Set(urls)].map(u => {
+                if (!u) return null;
+                if (u.startsWith('http')) return u;
+                return (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl + u : u;
+            }).filter(Boolean);
+
+            async function tryFetchAttachmentsFallback() {
+                const attempts = [];
+                const id = req.id || req.leaveId || req._id || '';
+                if (!id) return [];
+                const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl : '';
+                attempts.push(`${base}/api/LeaveRequests/${id}/attachments`);
+                attempts.push(`${base}/api/Attachments?leaveRequestId=${id}`);
+                attempts.push(`${base}/api/LeaveAttachments?leaveRequestId=${id}`);
+
+                const token = localStorage.getItem('token');
+
+                for (const url of attempts) {
+                    try {
+                        const headers = {};
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                        const res = await fetch(url, { method: 'GET', headers });
+                        if (!res || !res.ok) continue;
+
+                        const ct = res.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const data = await res.json();
+                            // try to extract file urls from JSON
+                            const found = [];
+                            if (Array.isArray(data)) {
+                                data.forEach(item => {
+                                    if (!item) return;
+                                    if (typeof item === 'string') found.push(item);
+                                    else if (item.url) found.push(item.url);
+                                    else if (item.fileUrl) found.push(item.fileUrl);
+                                    else if (item.path) found.push((base || '') + item.path);
+                                    else if (item.fileName) found.push((base || '') + '/uploads/' + item.fileName);
+                                });
+                            } else if (data.url) found.push(data.url);
+                            if (found.length) return found;
+                        } else {
+                            // binary/octet-stream or image -> convert to blob URL
+                            const blob = await res.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            return [blobUrl];
+                        }
+                    } catch (e) {
+                        console.debug && console.debug('attachment fetch attempt failed', url, e && e.message);
+                        continue;
+                    }
+                }
+                return [];
+            }
+
+            if (uniq.length === 0) {
+                // No direct URLs detected. Do not attempt fetching common endpoints (server may not expose them).
+                // Show a helpful fallback link so the user or admin can open the attachments endpoint manually.
+                const fallback = (typeof API !== 'undefined' && API.baseUrl) ? `${API.baseUrl}/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments` : `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments`;
+                list.innerHTML = `<div class="col-span-full text-center py-8">No direct attachment URLs available. <a href="${fallback}" target="_blank" class="text-blue-600 underline">Open attachments endpoint</a></div>`;
+            } else {
+                list.innerHTML = uniq.map(u => {
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(u);
+                    if (isImage) {
+                        return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank"><img src="${u}" class="max-h-40 object-contain" alt="attachment"></a></div>`;
+                    }
+                    return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" class="text-blue-600 underline">Open file</a></div>`;
+                }).join('');
+            }
+
+            document.getElementById('attachmentViewer').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeAttachmentViewer() {
+            document.getElementById('attachmentViewer').classList.add('hidden');
         }
 
         // ฟังก์ชัน Filter ตามสถานะ

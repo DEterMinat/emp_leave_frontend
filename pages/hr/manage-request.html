@@ -86,6 +86,20 @@
         </div>
     </div>
 
+    <!-- Attachment viewer modal (lightweight, works until backend provides listing API) -->
+    <div id="attachmentModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[1rem] shadow-2xl w-full max-w-3xl overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Attachments</h3>
+                <button onclick="closeAttachmentModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+                </button>
+            </div>
+            <div id="attachmentContent" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="noAttachmentsMessage" class="text-center text-gray-500 mt-4"></div>
+        </div>
+    </div>
+
     <script src="../../js/app.js"></script>
     <script src="../../js/api.js"></script>
     <script>
@@ -127,27 +141,33 @@
             }
 
             list.innerHTML = requests.map(req => `
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-200 transition-all group">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h4 class="font-bold text-lg text-gray-800">${req.employeeName || 'พนักงาน'}</h4>
-                            <p class="text-sm font-medium text-blue-500">${req.type}</p>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-200 transition-all group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800">${req.employeeName || (req.employee && req.employee.username) || req.username || 'พนักงาน'}</h4>
+                                <p class="text-sm font-medium text-blue-500">${req.leaveTypeName || req.type || (req.leaveType && req.leaveType.name) || 'ประเภทการลา'}</p>
+                                ${req.department || req.departmentName ? `<p class="text-xs text-gray-400 mt-1">${req.departmentName || req.department}</p>` : ''}
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="openManageModal('${req.id}')" class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-blue-700 transition shadow-md">
+                                    Manage
+                                </button>
+                                <button onclick="openAttachmentViewerById('${req.id}')" class="bg-white border text-blue-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-blue-50 transition shadow-sm">
+                                    View Attachment
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="openManageModal('${req.id}')" class="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-blue-700 transition shadow-md">
-                            Manage
-                        </button>
+                        <div class="space-y-2 text-sm text-gray-500 border-t pt-4">
+                            <p class="flex items-center space-x-2">
+                                <i data-lucide="calendar" class="w-4 h-4"></i>
+                                <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
+                            </p>
+                            <p class="flex items-center space-x-2">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                                <span>${LeaveRequest.calculateDays(req.startDate, req.endDate)} days</span>
+                            </p>
+                        </div>
                     </div>
-                    <div class="space-y-2 text-sm text-gray-500 border-t pt-4">
-                        <p class="flex items-center space-x-2">
-                            <i data-lucide="calendar" class="w-4 h-4"></i>
-                            <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
-                        </p>
-                        <p class="flex items-center space-x-2">
-                            <i data-lucide="clock" class="w-4 h-4"></i>
-                            <span>${LeaveRequest.calculateDays(req.startDate, req.endDate)} days</span>
-                        </p>
-                    </div>
-                </div>
             `).join('');
             lucide.createIcons();
         }
@@ -203,6 +223,85 @@
                 UI.showToast('ไม่สามารถดำเนินการได้: ' + error.message, 'error');
             }
         }
+        // Attachment viewer helpers (works with any attachment URLs present on the request object)
+        function openAttachmentViewerById(id) {
+            const req = allPendingRequests.find(r => r.id === id);
+            if (!req) {
+                if (typeof UI !== 'undefined' && UI.showToast) UI.showToast('ไม่พบคำร้องนี้', 'error');
+                return;
+            }
+            openAttachmentViewer(req);
+        }
+
+        async function openAttachmentViewer(req) {
+            const container = document.getElementById('attachmentContent');
+            const noMsg = document.getElementById('noAttachmentsMessage');
+            container.innerHTML = '';
+            noMsg.innerText = '';
+
+            // Heuristics: look for common fields that may contain urls/attachments
+            let urls = [];
+            if (Array.isArray(req.attachments) && req.attachments.length) urls = req.attachments.slice();
+            else if (Array.isArray(req.files) && req.files.length) urls = req.files.slice();
+            else if (Array.isArray(req.attachmentUrls) && req.attachmentUrls.length) urls = req.attachmentUrls.slice();
+
+            // single-value fields
+            if (!urls.length) {
+                if (req.attachment) urls.push(req.attachment);
+                if (req.attachmentUrl) urls.push(req.attachmentUrl);
+                if (req.attachmentLink) urls.push(req.attachmentLink);
+                if (req.fileUrl) urls.push(req.fileUrl);
+            }
+
+            // Normalize non-empty strings
+            urls = urls.filter(Boolean).map(u => (typeof u === 'object' && u.url) ? u.url : u);
+
+            // If relative paths provided, try to prefix with API.baseUrl if available
+            const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/+$/, '') : '';
+            const normalized = urls.map(u => {
+                if (!u) return null;
+                if (/^https?:\/\//i.test(u) || /^data:/i.test(u)) return u;
+                if (base) return base + '/' + String(u).replace(/^\/+/, '');
+                return u;
+            }).filter(Boolean);
+
+            if (!normalized.length) {
+                noMsg.innerText = 'ไม่มีไฟล์แนบ หรือรอ API สำหรับรายการไฟล์แนบ';
+                document.getElementById('attachmentModal').classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            for (const u of normalized) {
+                const isImage = /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(u) || /^data:image\//i.test(u);
+                if (isImage) {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'bg-gray-50 p-2 rounded-lg flex items-center justify-center';
+                    const img = document.createElement('img');
+                    img.src = u;
+                    img.alt = 'attachment';
+                    img.className = 'max-h-60 object-contain';
+                    wrap.appendChild(img);
+                    container.appendChild(wrap);
+                } else {
+                    const a = document.createElement('a');
+                    a.href = u;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.className = 'text-blue-600 underline';
+                    a.innerText = u;
+                    container.appendChild(a);
+                }
+            }
+
+            document.getElementById('attachmentModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeAttachmentModal() {
+            document.getElementById('attachmentModal').classList.add('hidden');
+        }
+
         window.onload = initManageRequests;
     </script>
 </body>

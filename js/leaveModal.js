@@ -147,18 +147,34 @@
             }
 
             try {
-                const created = await API.leaves.create(leaveData);
-                UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
+                let created = null;
 
-                // if server returned an id and we have uploaded files, try to upload them
-                const leaveId = created && (created.id || created.leaveId || created._id);
-                if (leaveId && uploadedFiles.length > 0) {
+                // If there are attachments, prefer the Swagger endpoint that accepts multipart/form-data
+                if (uploadedFiles.length > 0) {
                     try {
-                        await uploadFiles(leaveId, uploadedFiles);
-                        UI.showToast('อัปโหลดไฟล์แนบสำเร็จ', 'success');
-                    } catch (uErr) {
-                        console.error('Upload files error:', uErr);
-                        UI.showToast('อัปโหลดไฟล์แนบล้มเหลว', 'warning');
+                        created = await createLeaveWithAttachment(leaveData, uploadedFiles);
+                        UI.showToast('ส่งใบลาพร้อมไฟล์แนบสำเร็จแล้ว!', 'success');
+                    } catch (err) {
+                        // If server doesn't have that endpoint (404) or it fails, fall back to create-then-upload flow
+                        console.warn('createWithAttachment failed, will fallback to create() + uploadFiles():', err);
+                        // continue to fallback below
+                    }
+                }
+
+                // fallback: create leave first then upload attachments
+                if (!created) {
+                    created = await API.leaves.create(leaveData);
+                    UI.showToast('ส่งใบลาสำเร็จแล้ว!', 'success');
+
+                    const leaveId = created && (created.id || created.leaveId || created._id);
+                    if (leaveId && uploadedFiles.length > 0) {
+                        try {
+                            await uploadFiles(leaveId, uploadedFiles);
+                            UI.showToast('อัปโหลดไฟล์แนบสำเร็จ', 'success');
+                        } catch (uErr) {
+                            console.error('Upload files error:', uErr);
+                            UI.showToast('อัปโหลดไฟล์แนบล้มเหลว', 'warning');
+                        }
                     }
                 }
 
@@ -171,9 +187,44 @@
                 // notify pages so they can refresh their data
                 document.dispatchEvent(new CustomEvent('leaveSubmitted', { detail: { success: true, leave: created } }));
             } catch (error) {
-                UI.showToast('ส่งใบลาไม่สำเร็จ: ' + error.message, 'error');
+                UI.showToast('ส่งใบลาไม่สำเร็จ: ' + (error && error.message ? error.message : error), 'error');
             }
         });
+
+        // helper: call server endpoint that accepts multipart/form-data in one go
+        async function createLeaveWithAttachment(leaveData, files) {
+            const token = localStorage.getItem('token');
+            const url = `${API.baseUrl}/api/LeaveRequests/with-attachment`;
+
+            const form = new FormData();
+            // According to Swagger: File (binary), EmployeeId, LeaveTypeId, StartDate, EndDate, Reason
+            // Append each file as 'File' (server may accept single or repeated File fields)
+            files.forEach(f => form.append('File', f));
+            form.append('EmployeeId', leaveData.employeeId);
+            form.append('LeaveTypeId', leaveData.leaveTypeId);
+            form.append('StartDate', leaveData.startDate);
+            form.append('EndDate', leaveData.endDate);
+            form.append('Reason', leaveData.reason);
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                    // NOTE: do NOT set Content-Type; browser will set multipart boundary
+                },
+                body: form
+            });
+
+            const text = await res.text();
+            if (res.ok) {
+                try { return JSON.parse(text); } catch (e) { return text; }
+            }
+
+            // Throw an error with status for callers to decide fallback
+            const err = new Error(`Create with attachment failed ${res.status}: ${text}`);
+            err.status = res.status;
+            throw err;
+        }
 
         // file handlers
         function handleFiles(files) {
@@ -276,24 +327,75 @@
         }
 
         async function uploadFiles(leaveId, files) {
-            // Try a conventional endpoint for attachments
-            const url = `${API.baseUrl}/api/LeaveRequests/${leaveId}/attachments`;
-            const token = localStorage.getItem('token');
-            const form = new FormData();
-            files.forEach(f => form.append('files', f));
+                const token = localStorage.getItem('token');
 
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: form
-            });
+                // Build candidate endpoints and form field strategies to try.
+                const attempts = [
+                    // preferred: leave request scoped endpoint
+                    {
+                        url: `${API.baseUrl}/api/LeaveRequests/${leaveId}/attachments`,
+                        buildForm: (f) => {
+                            const form = new FormData(); f.forEach(x => form.append('files', x)); return form;
+                        }
+                    },
+                    // fallback: generic attachments endpoint with leaveRequestId field
+                    {
+                        url: `${API.baseUrl}/api/Attachments`,
+                        buildForm: (f) => {
+                            const form = new FormData(); form.append('leaveRequestId', leaveId); f.forEach(x => form.append('files', x)); return form;
+                        }
+                    },
+                    // fallback: singular file field (some APIs expect 'file')
+                    {
+                        url: `${API.baseUrl}/api/Attachments`,
+                        buildForm: (f) => {
+                            const form = new FormData(); form.append('leaveRequestId', leaveId); f.forEach(x => form.append('file', x)); return form;
+                        }
+                    },
+                    // other common path
+                    {
+                        url: `${API.baseUrl}/api/LeaveAttachments`,
+                        buildForm: (f) => {
+                            const form = new FormData(); form.append('leaveRequestId', leaveId); f.forEach(x => form.append('files', x)); return form;
+                        }
+                    }
+                ];
 
-            if (!res.ok) {
-                throw new Error(`Upload failed: ${res.status}`);
-            }
-            return res.json();
+                let lastError = null;
+                for (const attempt of attempts) {
+                    try {
+                        const form = attempt.buildForm(files);
+                        const res = await fetch(attempt.url, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': token ? `Bearer ${token}` : ''
+                            },
+                            body: form
+                        });
+
+                        if (res.ok) {
+                            // try parse json, fallback to text
+                            const contentType = res.headers.get('content-type') || '';
+                            if (contentType.includes('application/json')) return await res.json();
+                            return await res.text();
+                        }
+
+                        // if 404, try next candidate; otherwise throw with body
+                        const bodyText = await res.text();
+                        if (res.status === 404) {
+                            console.warn(`Upload attempt to ${attempt.url} returned 404, trying next candidate.`);
+                            lastError = new Error(`Upload 404 at ${attempt.url}`);
+                            continue;
+                        }
+                        throw new Error(`Upload failed ${res.status}: ${bodyText}`);
+                    } catch (err) {
+                        console.error('uploadFiles attempt error:', err);
+                        lastError = err;
+                        // try next candidate
+                    }
+                }
+
+                throw lastError || new Error('Upload failed (no attempts succeeded)');
         }
     }
 
