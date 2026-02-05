@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Requests - Leave System</title>
+    <title>My Requests (Manager) - Leave System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -13,12 +13,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
                 <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white">
-                        <i data-lucide="user"></i>
+                    <div class="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white">
+                        <i data-lucide="shield-check"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold" id="user-name">Username</h1>
-                        <p class="text-sm text-gray-500 italic" id="user-role-dept">Role - Department</p>
+                        <h1 class="text-lg font-bold" id="user-name">Manager</h1>
+                        <p class="text-sm text-gray-500 italic" id="user-role-dept">Manager</p>
                     </div>
                 </div>
                 <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
@@ -43,7 +43,7 @@
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-bold text-gray-800" id="request-title">My Leave Request (0)</h2>
             <div class="flex space-x-2">
-                <select class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="statusFilter" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
                     <option>All Status</option>
                     <option>Approved</option>
                     <option>Pending</option>
@@ -87,10 +87,12 @@
             }
 
             try {
-                // 1. ดึงข้อมูล User มาแสดงใน Navbar
+                // 1. ดึงข้อมูล User มาแสดงใน Navbar (robust display)
                 const user = await API.users.getById(userId);
-                document.getElementById('user-name').innerText = user.username || 'Employee'; 
-                document.getElementById('user-role-dept').innerText = `${user.roleName || 'N/A'}`;
+                const displayName = ((user && (user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user && (user.username || user.email))) || 'Manager';
+                const roleText = (user && (user.roleName || user.role || user.department)) || '';
+                document.getElementById('user-name').innerText = displayName;
+                document.getElementById('user-role-dept').innerText = roleText;
 
                 // 2. ดึงข้อมูลการลาทั้งหมดของผู้ใช้คนนี้
                 allLeaves = await API.leaves.getAll(userId);
@@ -207,7 +209,7 @@
             if (req.fileUrl) urls.push(req.fileUrl);
             if (req.attachmentUrl) urls.push(req.attachmentUrl);
 
-            // Remove duplicates (normalize later)
+            // Remove duplicates (will normalize later)
             let uniq = [...new Set(urls)].filter(Boolean);
 
             async function tryFetchAttachmentsFallback() {
@@ -334,6 +336,8 @@
                 renderRequests(filtered);
             }
         }
+
+        document.getElementById('statusFilter').addEventListener('change', (e) => filterStatus(e.target.value));
 
         window.onload = initMyRequests;
 </script>

@@ -18,9 +18,11 @@ async function initHRDashboard() {
         document.getElementById('pending-req').innerText = pending;
         document.getElementById('total-approved').innerText = approved;
 
-        // Do not probe multiple entitlement endpoints (caused noisy console errors).
-        // We'll compute used days from the user's own leave requests and fall back to defaults.
-        renderLeaveBalances(leaves, null);
+    // Try to fetch authoritative entitlements / leave balances for this user.
+    // If available, use them as the 'total' values; otherwise fallback to defaults computed below.
+    const entitlements = await getLeaveEntitlements(userId);
+    console.debug && console.debug('HR entitlements for user', userId, entitlements);
+    renderLeaveBalances(leaves, entitlements);
         renderRecentRequests(leaves);
 
         lucide.createIcons();
@@ -32,41 +34,64 @@ async function initHRDashboard() {
 
 // Try a few plausible endpoints to get leave entitlements / balances for the user.
 async function getLeaveEntitlements(userId) {
-    const candidates = [
-        `/api/LeaveBalances/${userId}`,
+    // Prefer documented endpoints (try in this order):
+    // 1) GET /api/LeaveBalances/employee/{employeeId}
+    // 2) GET /api/LeaveBalances/mine (requires auth)
+    // 3) GET /api/LeaveBalances (returns all - try to find matching employee)
+    // Use API.request so Authorization header is sent when available.
+    const endpoints = [
         `/api/LeaveBalances/employee/${userId}`,
-        `/api/Users/${userId}/leaveBalances`,
-        `/api/Employees/${userId}/leaveBalances`,
-        `/api/Users/${userId}`
+        `/api/LeaveBalances/mine`,
+        `/api/LeaveBalances`
     ];
-    // Use direct fetch (quiet) instead of API.request to avoid noisy logged errors
-    for (const ep of candidates) {
+
+    for (const ep of endpoints) {
         try {
-            const url = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl + ep : ep;
-            const res = await fetch(url, { method: 'GET' });
-            if (!res || !res.ok) {
-                // silently skip non-2xx responses (404/405 etc.)
-                console.debug && console.debug('entitlement endpoint not available or returned', res && res.status, ep);
+            console.debug && console.debug('Trying entitlement endpoint', ep);
+            const data = await API.request(ep);
+            if (!data) {
+                console.debug && console.debug('No data from entitlement endpoint', ep);
                 continue;
             }
 
-            const data = await res.json();
-            if (!data) continue;
-            if (data.leaveBalances) return data.leaveBalances;
-            if (data.annual || data.sick || data.personal) return data;
+            // If endpoint returned wrapper { leaveBalances: ... }
+            if (data.leaveBalances) {
+                return data.leaveBalances;
+            }
+
+            // If endpoint returned an object with known fields
+            if (data.annual || data.sick || data.personal || data.unpaid) {
+                return data;
+            }
+
+            // If endpoint returned an array of balances, try to convert
             if (Array.isArray(data)) {
                 const map = {};
                 data.forEach(item => {
-                    if (item.type && item.total) map[item.type] = item.total;
+                    // common shapes: { type: 'Annual Leave', total: 6 } or { key: 'annual', value: 6 }
+                    if (item.type && (item.total !== undefined)) map[item.type] = item.total;
+                    else if (item.key && (item.value !== undefined)) map[item.key] = item.value;
+                    else if (item.leaveType && (item.amount !== undefined)) map[item.leaveType] = item.amount;
                 });
                 if (Object.keys(map).length) return map;
             }
+
+            // If GET /api/LeaveBalances returned a single object with employee-specific keys
+            if (typeof data === 'object') return data;
+
         } catch (err) {
-            // network or parse error — keep quiet (debug only)
-            console.debug && console.debug('entitlement fetch error', ep, err && err.message);
+            // API.request will throw for non-2xx; inspect status from message when available
+            console.debug && console.debug('Entitlement endpoint error for', ep, err && err.message);
+            // If 401 Unauthorized, stop trying endpoints that require auth and fallback
+            if (err && /401|Unauthorized/i.test(err.message)) {
+                console.debug && console.debug('Entitlement endpoints require auth - aborting further attempts');
+                break;
+            }
+            // continue to next candidate for 404/405 or network errors
             continue;
         }
     }
+
     return null;
 }
 
@@ -81,18 +106,72 @@ function renderLeaveBalances(leaves, entitlements = null) {
         { key: 'Unpaid Leave', idKey: 'unpaid', total: 365, icon: 'dollar-sign', color: 'from-green-300 to-green-200 text-white' }
     ];
 
+    // Build a normalized map of used days keyed by multiple plausible identifiers
     const usedMap = {};
+    const norm = s => (s || '').toString().trim().toLowerCase();
+
     leaves.forEach(l => {
-        const name = (l.leaveTypeName || l.leaveType || '').toString();
         const status = (l.status || '').toString().toLowerCase();
         if (status !== 'approved') return;
         const days = LeaveRequest.calculateDays(l.startDate, l.endDate) || 0;
-        usedMap[name] = (usedMap[name] || 0) + days;
+
+        // collect plausible keys for this leave entry
+        const keys = new Set();
+        const name = l.leaveTypeName || l.leaveType || l.type || '';
+        if (name) keys.add(norm(name));
+        if (l.leaveTypeId) keys.add(String(l.leaveTypeId));
+        if (l.leaveTypeCode) keys.add(norm(l.leaveTypeCode));
+        if (l.type) keys.add(norm(l.type));
+
+        // add days to all candidate keys
+        keys.forEach(k => {
+            if (!k) return;
+            usedMap[k] = (usedMap[k] || 0) + days;
+        });
     });
 
+    // debug: show what usedMap we calculated and entitlements we received
+    console.debug && console.debug('renderLeaveBalances entitlements:', entitlements, 'usedMap preview (first 10):', Object.entries(usedMap).slice(0,10));
+
     container.innerHTML = types.map(t => {
-        const used = usedMap[t.key] || usedMap[t.key.toLowerCase()] || 0;
-        const total = (entitlements && (entitlements[t.idKey] || entitlements[t.key] || entitlements[t.key.toLowerCase()])) || t.total;
+        // try multiple normalized candidates to find used days
+        const candidates = [norm(t.key), norm(t.idKey), String(t.idKey), norm(t.key.replace(/\s+/g, ' '))].filter(Boolean);
+        let used = 0;
+        let matchedKey = null;
+        for (const c of candidates) {
+            if (usedMap[c]) { used = usedMap[c]; matchedKey = c; break; }
+        }
+
+        // Fallback: if no direct key matched, try substring or contains match on usedMap keys
+        if (!used) {
+            const want = norm(t.key);
+            for (const k of Object.keys(usedMap)) {
+                try {
+                    if (!k) continue;
+                    const kn = k.toString().toLowerCase();
+                    if (kn.includes(want) || want.includes(kn) || kn.includes(norm(t.idKey))) {
+                        used = usedMap[k];
+                        matchedKey = k;
+                        break;
+                    }
+                } catch (e) { continue; }
+            }
+        }
+
+        console.debug && console.debug('leave balance mapping', t.key, { candidates, matchedKey, used });
+
+        // Resolve total from entitlements if provided (try multiple key shapes)
+        const total = (function() {
+            if (!entitlements) return t.total;
+            const tryKeys = [t.idKey, t.key, t.key.toLowerCase(), norm(t.idKey), norm(t.key)];
+            for (const k of tryKeys) {
+                if (!k) continue;
+                if (entitlements[k] !== undefined) return entitlements[k];
+                if (entitlements[k.toString()] !== undefined) return entitlements[k.toString()];
+            }
+            return t.total;
+        })();
+
         const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
         return `
             <div class="bg-white p-4 rounded-2xl shadow-sm border hover:shadow-md transition">

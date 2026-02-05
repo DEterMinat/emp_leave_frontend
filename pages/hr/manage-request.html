@@ -233,70 +233,85 @@
             openAttachmentViewer(req);
         }
 
-        async function openAttachmentViewer(req) {
-            const container = document.getElementById('attachmentContent');
-            const noMsg = document.getElementById('noAttachmentsMessage');
-            container.innerHTML = '';
-            noMsg.innerText = '';
+                async function openAttachmentViewer(req) {
+                    const container = document.getElementById('attachmentContent');
+                    const noMsg = document.getElementById('noAttachmentsMessage');
+                    container.innerHTML = '';
+                    noMsg.innerText = '';
 
-            // Heuristics: look for common fields that may contain urls/attachments
-            let urls = [];
-            if (Array.isArray(req.attachments) && req.attachments.length) urls = req.attachments.slice();
-            else if (Array.isArray(req.files) && req.files.length) urls = req.files.slice();
-            else if (Array.isArray(req.attachmentUrls) && req.attachmentUrls.length) urls = req.attachmentUrls.slice();
+                    // Heuristics: look for common fields that may contain urls/attachments
+                    let urls = [];
+                    if (Array.isArray(req.attachments) && req.attachments.length) urls = req.attachments.slice();
+                    else if (Array.isArray(req.files) && req.files.length) urls = req.files.slice();
+                    else if (Array.isArray(req.attachmentUrls) && req.attachmentUrls.length) urls = req.attachmentUrls.slice();
 
-            // single-value fields
-            if (!urls.length) {
-                if (req.attachment) urls.push(req.attachment);
-                if (req.attachmentUrl) urls.push(req.attachmentUrl);
-                if (req.attachmentLink) urls.push(req.attachmentLink);
-                if (req.fileUrl) urls.push(req.fileUrl);
-            }
+                    // single-value fields
+                    if (!urls.length) {
+                        if (req.attachment) urls.push(req.attachment);
+                        if (req.attachmentUrl) urls.push(req.attachmentUrl);
+                        if (req.attachmentLink) urls.push(req.attachmentLink);
+                        if (req.fileUrl) urls.push(req.fileUrl);
+                    }
 
-            // Normalize non-empty strings
-            urls = urls.filter(Boolean).map(u => (typeof u === 'object' && u.url) ? u.url : u);
+                    // If we still have no attachments on the request object, try the backend listing endpoint
+                    // This endpoint exists on the deployed backend: GET /api/LeaveRequests/{id}/attachments
+                    try {
+                        if (!urls.length && req && req.id && typeof API !== 'undefined' && API.leaves && API.leaves.getAttachments) {
+                            const remote = await API.leaves.getAttachments(req.id);
+                            // remote expected to be an array of { id, requestId, fileName, filePath, uploadedDate }
+                            if (Array.isArray(remote) && remote.length) {
+                                urls = remote.map(r => r.filePath || r.fileUrl || r.url || r.fileName || null).filter(Boolean);
+                            }
+                        }
+                    } catch (e) {
+                        // Do not fail hard; fall back to existing heuristics and show helpful message later
+                        console.warn('Could not fetch attachments list for request', req && req.id, e);
+                    }
 
-            // If relative paths provided, try to prefix with API.baseUrl if available
-            const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/+$/, '') : '';
-            const normalized = urls.map(u => {
-                if (!u) return null;
-                if (/^https?:\/\//i.test(u) || /^data:/i.test(u)) return u;
-                if (base) return base + '/' + String(u).replace(/^\/+/, '');
-                return u;
-            }).filter(Boolean);
+                    // Normalize values (if objects were passed, try to extract url)
+                    urls = urls.filter(Boolean).map(u => (typeof u === 'object' && u.url) ? u.url : u);
 
-            if (!normalized.length) {
-                noMsg.innerText = 'ไม่มีไฟล์แนบ หรือรอ API สำหรับรายการไฟล์แนบ';
-                document.getElementById('attachmentModal').classList.remove('hidden');
-                lucide.createIcons();
-                return;
-            }
+                    // If relative paths provided, try to prefix with API.baseUrl if available
+                    const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/+$/, '') : '';
+                    const normalized = urls.map(u => {
+                        if (!u) return null;
+                        if (/^https?:\/\//i.test(u) || /^data:/i.test(u)) return u;
+                        if (base) return base + '/' + String(u).replace(/^\/+/, '');
+                        return u;
+                    }).filter(Boolean);
 
-            for (const u of normalized) {
-                const isImage = /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(u) || /^data:image\//i.test(u);
-                if (isImage) {
-                    const wrap = document.createElement('div');
-                    wrap.className = 'bg-gray-50 p-2 rounded-lg flex items-center justify-center';
-                    const img = document.createElement('img');
-                    img.src = u;
-                    img.alt = 'attachment';
-                    img.className = 'max-h-60 object-contain';
-                    wrap.appendChild(img);
-                    container.appendChild(wrap);
-                } else {
-                    const a = document.createElement('a');
-                    a.href = u;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    a.className = 'text-blue-600 underline';
-                    a.innerText = u;
-                    container.appendChild(a);
+                    if (!normalized.length) {
+                        noMsg.innerText = 'ไม่มีไฟล์แนบ หรือรอ API สำหรับรายการไฟล์แนบ';
+                        document.getElementById('attachmentModal').classList.remove('hidden');
+                        lucide.createIcons();
+                        return;
+                    }
+
+                    for (const u of normalized) {
+                        const isImage = /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(u) || /^data:image\//i.test(u);
+                        if (isImage) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'bg-gray-50 p-2 rounded-lg flex items-center justify-center';
+                            const img = document.createElement('img');
+                            img.src = u;
+                            img.alt = 'attachment';
+                            img.className = 'max-h-60 object-contain';
+                            wrap.appendChild(img);
+                            container.appendChild(wrap);
+                        } else {
+                            const a = document.createElement('a');
+                            a.href = u;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            a.className = 'text-blue-600 underline block';
+                            a.innerText = u;
+                            container.appendChild(a);
+                        }
+                    }
+
+                    document.getElementById('attachmentModal').classList.remove('hidden');
+                    lucide.createIcons();
                 }
-            }
-
-            document.getElementById('attachmentModal').classList.remove('hidden');
-            lucide.createIcons();
-        }
 
         function closeAttachmentModal() {
             document.getElementById('attachmentModal').classList.add('hidden');

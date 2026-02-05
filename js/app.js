@@ -6,8 +6,11 @@
 // Configuration
 // ============================================
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:5082',
-    DATE_FORMAT: 'th-TH'
+    // ปรับค่าเริ่มต้นให้ชี้ไปยัง Backend ที่เพื่อนอัพเดท
+    API_BASE_URL: 'https://emp-leave-backend.onrender.com',
+    DATE_FORMAT: 'th-TH',
+    // เปิดการเชื่อมต่อ Notifications สำหรับทดสอบ (สามารถปิดได้โดยตั้งเป็น false)
+    ENABLE_NOTIFICATIONS: true
 };
 
 // ============================================

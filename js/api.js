@@ -6,7 +6,8 @@
 const _cfg = (typeof CONFIG !== 'undefined' && CONFIG) ? CONFIG : (window.CONFIG || null);
 const API = {
     // ใช้พอร์ต 5082 ตามที่ Server รันอยู่จริง
-    baseUrl: (_cfg && _cfg.API_BASE_URL) ? _cfg.API_BASE_URL : 'http://localhost:5082',
+    // Prefer CONFIG.API_BASE_URL when present; otherwise default to the deployed backend
+    baseUrl: (_cfg && _cfg.API_BASE_URL) ? _cfg.API_BASE_URL : 'https://emp-leave-backend.onrender.com',
 
     /**
      * Make HTTP request
@@ -115,16 +116,23 @@ const API = {
             });
         },
 
+        async getAttachments(id) {
+            // Fetch attachments for a leave request when backend provides the endpoint
+            return API.request(`/api/LeaveRequests/${id}/attachments`);
+        },
+
         approve(id, data) {
+            // Send the DTO directly to match the Swagger request body shape
+            // Example: { "status": "Approved", "comment": "...", "approverId": "..." }
             return API.request(`/api/LeaveRequests/${id}/approve`, {
                 method: 'PUT',
-                body: JSON.stringify(data) // เพิ่มการส่ง Body
+                body: JSON.stringify(data)
             });
         },
         reject(id, data) {
             return API.request(`/api/LeaveRequests/${id}/reject`, {
                 method: 'PUT',
-                body: JSON.stringify(data) // เพิ่มการส่ง Body
+                body: JSON.stringify(data)
             });
         }
     },

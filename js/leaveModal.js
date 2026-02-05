@@ -2,19 +2,20 @@
 // Injects the Request Leave modal and wires all related behaviors so multiple pages can reuse it.
 (function () {
     const modalHtml = `
-    <div id="leaveModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all border border-gray-100">
+    <div id="leaveModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div id="leaveModalPanel" class="bg-white rounded-[2.5rem] shadow-2xl w-full overflow-hidden transform transition-all border border-gray-100 flex flex-col" style="max-width:900px; width:100%; max-height:90vh;" role="document" tabindex="-1">
             <div class="p-8 border-b flex justify-between items-center bg-white relative">
                 <h3 class="text-2xl font-bold text-gray-800 w-full text-center">Request Leave</h3>
-                <button id="leaveModalClose" class="absolute right-6 p-2 hover:bg-gray-100 rounded-full transition">
+                <button id="leaveModalClose" aria-label="Close leave modal" class="absolute right-6 p-2 hover:bg-gray-100 rounded-full transition">
                     <i data-lucide="x" class="w-6 h-6 text-gray-400"></i>
                 </button>
             </div>
             
-            <form id="leaveForm" class="p-8 space-y-5">
+            <form id="leaveForm" class="p-0 sm:p-0 flex-1 flex flex-col" style="box-sizing: border-box;">
+                <div id="leaveModalBody" class="overflow-auto p-6 sm:p-8" style="max-height:calc(90vh - 180px);">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leave Type</label>
-                    <select id="leaveType" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium appearance-none">
+                    <select id="leaveType" class="w-full border-0 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium appearance-none">
                         <option value="">Select Leave Type</option>
                         <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
                         <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
@@ -42,7 +43,7 @@
 
                 <div id="attachmentSection">
                     <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Attachments</label>
-                    <div id="attachmentDrop" class="border-2 border-dashed border-gray-100 rounded-[2rem] p-10 text-center hover:bg-gray-50 transition cursor-pointer group relative">
+                    <div id="attachmentDrop" class="border-2 border-dashed border-gray-100 rounded-[2rem] p-8 sm:p-10 text-center hover:bg-gray-50 transition cursor-pointer group relative" style="min-height:120px;">
                         <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-12 h-12 group-hover:text-blue-400 transition"></i>
                         <p class="text-sm font-medium text-gray-400">Click to upload or drag and drop</p>
                         <p class="text-[10px] text-gray-300 mt-1 uppercase">PDF, DOC, JPG, PNG MAX(10MB)</p>
@@ -50,10 +51,16 @@
                     </div>
                     <div id="file-list" class="mt-4 space-y-2"></div>
                 </div>
+                </div>
 
-                <div class="grid grid-cols-2 gap-4 pt-4">
-                    <button type="button" id="leaveCancel" class="py-4 border border-gray-100 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" id="leaveSubmit" class="py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">Submit Request</button>
+                <div class="flex-none bg-white border-t border-gray-100 px-4 sm:px-6 py-3 sm:py-4" style="box-shadow: 0 -6px 18px rgba(15,23,42,0.04);">
+                    <div class="max-w-7xl mx-auto flex items-center gap-4" style="justify-content: flex-end;">
+                        <button type="button" id="leaveCancel" class="inline-flex items-center justify-center h-12 px-5 rounded-2xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition" style="min-width:120px;">Cancel</button>
+                        <button type="submit" id="leaveSubmit" class="inline-flex items-center justify-center h-12 px-6 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition shadow-md" style="min-width:140px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="-ml-1 mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+                            Submit Request
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -79,6 +86,7 @@
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('file-list');
         const leaveForm = document.getElementById('leaveForm');
+        const panel = document.getElementById('leaveModalPanel');
 
         // Expose LeaveModal namespace to avoid polluting global scope
         window.LeaveModal = {
@@ -95,9 +103,19 @@
 
         function open() {
             modal.classList.remove('hidden');
+            // prevent body scroll while modal open
+            try { window._leaveModal_prevBodyOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; } catch (e) {}
             // fill leave types dynamically and rebuild map
             UI.fillLeaveTypes('leaveType').then(() => buildLeaveTypeMap());
             lucide.createIcons();
+
+            // focus trap - set focus to first focusable element inside modal
+            try {
+                const focusable = panel ? panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') : [];
+                if (focusable && focusable.length) focusable[0].focus();
+            } catch (e) { }
+            // add keydown handler for Escape and Tab
+            document.addEventListener('keydown', onKeyDown);
         }
 
         function close() {
@@ -105,21 +123,43 @@
             leaveForm.reset();
             fileList.innerHTML = '';
             uploadedFiles = [];
+            // restore body overflow
+            try { document.body.style.overflow = window._leaveModal_prevBodyOverflow || ''; delete window._leaveModal_prevBodyOverflow; } catch (e) {}
+            document.removeEventListener('keydown', onKeyDown);
         }
 
-    closeBtn.addEventListener('click', () => window.LeaveModal.close());
-    cancelBtn.addEventListener('click', () => window.LeaveModal.close());
+        function onKeyDown(e) {
+            if (!panel) return;
+            if (e.key === 'Escape') {
+                window.LeaveModal.close();
+                return;
+            }
+            if (e.key === 'Tab') {
+                // simple focus trap
+                const focusable = Array.from(panel.querySelectorAll('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => el.offsetParent !== null);
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+        }
+
+        closeBtn && closeBtn.addEventListener && closeBtn.addEventListener('click', () => window.LeaveModal.close());
+    cancelBtn && cancelBtn.addEventListener && cancelBtn.addEventListener('click', () => window.LeaveModal.close());
 
         // open file picker
-        drop.addEventListener('click', () => fileInput.click());
+        if (drop && fileInput) {
+            drop.addEventListener && drop.addEventListener('click', () => fileInput.click());
 
-        // file input change
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+            // file input change
+            fileInput.addEventListener && fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-        // basic drag/drop support
-        drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('bg-gray-50'); });
-        drop.addEventListener('dragleave', (e) => { drop.classList.remove('bg-gray-50'); });
-        drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('bg-gray-50'); if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files); });
+            // basic drag/drop support
+            drop.addEventListener && drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('bg-gray-50'); });
+            drop.addEventListener && drop.addEventListener('dragleave', (e) => { drop.classList.remove('bg-gray-50'); });
+            drop.addEventListener && drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('bg-gray-50'); if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files); });
+        }
 
         // wire date/type inputs for rules
         const leaveType = document.getElementById('leaveType');

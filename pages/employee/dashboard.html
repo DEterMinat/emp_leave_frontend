@@ -125,9 +125,9 @@
                 // 4. Render รายการล่าสุด
                 renderRecentRequests(leaves);
 
-                // 5. Entitlements endpoint not implemented on backend in this setup.
-                // Use client-side defaults / compute from leaves instead of probing unknown endpoints.
-                const entitlements = null;
+                // 5. Try to fetch entitlements from backend (if available). If not available, getLeaveEntitlements
+                // will return null and renderLeaveBalances will fall back to client-side defaults.
+                const entitlements = await getLeaveEntitlements(userId);
                 renderLeaveBalances(leaves, entitlements);
 
             } catch (error) {
@@ -186,19 +186,59 @@
                 { key: 'Unpaid Leave', idKey: 'unpaid', total: 365, icon: 'dollar-sign', color: 'from-green-300 to-green-200 text-white' }
             ];
 
-            // compute used days per type: sum of approved leaves days for each leaveTypeName
-            const usedMap = {};
+            // Build a normalized map of used days keyed by a sanitized leave-type string so we can robustly
+            // match backend variations (e.g., 'Unpaid', 'Unpaid Leave', 'UNPAID_LEAVE', ids, codes, etc.).
+            const normalize = s => (s || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+
+            const usedByKey = {};
             leaves.forEach(l => {
-                const name = (l.leaveTypeName || l.leaveType || '').toString();
                 const status = (l.status || '').toString().toLowerCase();
                 if (status !== 'approved') return; // count only approved days
                 const days = LeaveRequest.calculateDays(l.startDate, l.endDate) || 0;
-                usedMap[name] = (usedMap[name] || 0) + days;
+                // Try several possible name/id fields from backend
+                const candidates = [l.leaveTypeName, l.leaveType, l.type, l.leaveTypeCode, l.leaveTypeId, l.leaveTypeKey, l.name, l.code];
+                // Use first non-empty candidate to key the used map, but also increment multiple normalized forms
+                candidates.forEach(c => {
+                    if (!c) return;
+                    const k = normalize(c);
+                    if (!k) return;
+                    usedByKey[k] = (usedByKey[k] || 0) + days;
+                });
             });
+
+            // Helper to find used days for a configured type with fallbacks
+            function getUsedForType(t) {
+                const wantKeys = [];
+                wantKeys.push(normalize(t.key));
+                if (t.idKey) wantKeys.push(normalize(t.idKey));
+                // include lowercased simple tokens from the key (e.g., 'unpaid')
+                const tokens = (t.key || '').toString().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+                tokens.forEach(tok => wantKeys.push(tok));
+
+                // 1) exact normalized matches
+                for (const wk of wantKeys) {
+                    if (usedByKey[wk]) return usedByKey[wk];
+                }
+
+                // 2) substring match across all known keys (sum all matches)
+                let sum = 0;
+                Object.keys(usedByKey).forEach(k => {
+                    for (const wk of wantKeys) {
+                        if (k.includes(wk)) {
+                            sum += usedByKey[k];
+                            break;
+                        }
+                    }
+                });
+                if (sum > 0) return sum;
+
+                // 3) no match
+                return 0;
+            }
 
             // Build cards (use entitlements if available)
             container.innerHTML = types.map(t => {
-                const used = usedMap[t.key] || usedMap[t.key.toLowerCase()] || 0;
+                const used = getUsedForType(t) || 0;
                 const total = (entitlements && (entitlements[t.idKey] || entitlements[t.key] || entitlements[t.key.toLowerCase()])) || t.total;
                 const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
                 return `

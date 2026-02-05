@@ -173,49 +173,109 @@
         }
 
         // Open viewer by id (use allLeaves lookup)
-        function openAttachmentViewerById(id) {
+        async function openAttachmentViewerById(id) {
             const req = allLeaves.find(l => (l.id === id || l.leaveId === id || l._id === id));
             if (!req) return UI.showToast('ไม่พบไฟล์แนบ', 'error');
-            openAttachmentViewer(req);
+            await openAttachmentViewer(req);
         }
 
-        function openAttachmentViewer(req) {
+        async function openAttachmentViewer(req) {
             const list = document.getElementById('attachment-list');
             list.innerHTML = '';
 
-            // try to extract urls
+            // try to extract urls directly from the request object
             const urls = [];
             if (Array.isArray(req.attachments)) {
                 req.attachments.forEach(a => {
                     if (typeof a === 'string') urls.push(a);
                     else if (a.url) urls.push(a.url);
                     else if (a.fileUrl) urls.push(a.fileUrl);
+                    else if (a.filePath) urls.push(a.filePath);
+                    else if (a.path) urls.push(a.path);
                 });
             }
             if (Array.isArray(req.files)) {
-                req.files.forEach(f => { if (f.url) urls.push(f.url); });
+                req.files.forEach(f => {
+                    if (typeof f === 'string') urls.push(f);
+                    else if (f.url) urls.push(f.url);
+                    else if (f.fileUrl) urls.push(f.fileUrl);
+                    else if (f.filePath) urls.push(f.filePath);
+                    else if (f.path) urls.push(f.path);
+                });
             }
             if (req.attachmentUrls) urls.push(...(req.attachmentUrls || []));
             if (req.fileUrl) urls.push(req.fileUrl);
             if (req.attachmentUrl) urls.push(req.attachmentUrl);
+            if (req.filePath) urls.push(req.filePath);
 
-            // Remove duplicates and normalize relative URLs
-            const uniq = [...new Set(urls)].map(u => {
+            // Remove duplicates
+            let uniq = [...new Set(urls)].filter(Boolean);
+
+            // Normalize relative URLs using API.baseUrl if present
+            const normalize = u => {
                 if (!u) return null;
-                if (u.startsWith('http')) return u;
-                return (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl + u : u;
-            }).filter(Boolean);
+                if (/^https?:\/\//i.test(u)) return u;
+                if (typeof API !== 'undefined' && API.baseUrl) {
+                    const base = API.baseUrl.replace(/\/$/, '');
+                    return base + '/' + u.replace(/^\//, '');
+                }
+                return u;
+            };
+
+            uniq = uniq.map(normalize).filter(Boolean);
+
+            // If no direct URLs found, try fetching the attachments endpoint
+            if (uniq.length === 0) {
+                const id = req.id || req.leaveId || req._id || '';
+                if (!id) {
+                    list.innerHTML = `<div class="col-span-full text-center py-8">ไม่พบไฟล์แนบ</div>`;
+                    document.getElementById('attachmentViewer').classList.remove('hidden');
+                    lucide.createIcons();
+                    return;
+                }
+
+                try {
+                    console.debug('Fetching attachments for leave id', id);
+                    const attachments = await API.leaves.getAttachments(id);
+                    console.debug('Attachments response:', attachments);
+
+                    // attachments might be { data: [...] } or an array
+                    const arr = Array.isArray(attachments) ? attachments : (attachments && attachments.data) ? attachments.data : [];
+
+                    const fetched = [];
+                    arr.forEach(a => {
+                        if (!a) return;
+                        if (typeof a === 'string') fetched.push(a);
+                        else if (a.url) fetched.push(a.url);
+                        else if (a.fileUrl) fetched.push(a.fileUrl);
+                        else if (a.filePath) fetched.push(a.filePath);
+                        else if (a.path) fetched.push(a.path);
+                        else if (a.downloadUrl) fetched.push(a.downloadUrl);
+                        else if (a.name && a.id) {
+                            // some APIs return metadata - construct a possible download URL
+                            const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/$/, '') : '';
+                            if (base) fetched.push(base + `/api/LeaveRequests/${id}/attachments/${a.id}`);
+                        }
+                    });
+
+                    uniq = [...new Set(fetched)].map(normalize).filter(Boolean);
+
+                } catch (err) {
+                    console.debug('Error fetching attachments', err);
+                    UI.showToast('ไม่สามารถดึงไฟล์แนบจากเซิร์ฟเวอร์ได้', 'error');
+                }
+            }
 
             if (uniq.length === 0) {
-                const fallback = (typeof API !== 'undefined' && API.baseUrl) ? `${API.baseUrl}/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments` : `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments`;
-                list.innerHTML = `<div class="col-span-full text-center py-8">No direct attachment URLs available. <a href="${fallback}" target="_blank" class="text-blue-600 underline">Open attachments endpoint</a></div>`;
+                const fallback = (typeof API !== 'undefined' && API.baseUrl) ? `${API.baseUrl.replace(/\/$/, '')}/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments` : `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments`;
+                list.innerHTML = `<div class="col-span-full text-center py-8">No attachments available. <a href="${fallback}" target="_blank" class="text-blue-600 underline">Open attachments endpoint</a></div>`;
             } else {
                 list.innerHTML = uniq.map(u => {
                     const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(u);
                     if (isImage) {
-                        return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank"><img src="${u}" class="max-h-40 object-contain" alt="attachment"></a></div>`;
+                        return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" rel="noopener"><img src="${u}" class="max-h-40 object-contain" alt="attachment"></a></div>`;
                     }
-                    return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" class="text-blue-600 underline">Open file</a></div>`;
+                    return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" rel="noopener" class="text-blue-600 underline">Open file</a></div>`;
                 }).join('');
             }
 

@@ -21,111 +21,339 @@
                         <p class="text-sm text-gray-500" id="user-role-dept">Manager - Department</p>
                     </div>
                 </div>
+                <div class="flex items-center">
+                    <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        <span>New Request</span>
+                    </button>
+                </div>
             </div>
-            <div class="flex space-x-8 mt-2">
-                <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2">
+            <div class="flex items-center space-x-6">
+                <a href="#" class="border-b-2 border-blue-600 px-1 py-2 text-blue-600 font-medium flex items-center space-x-2">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="teams.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition">
+                <a href="my-request.html" class="border-b-2 border-transparent px-1 py-2 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>My Request</span>
+                </a>
+                <a href="teams.html" class="border-b-2 border-transparent px-1 py-2 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition">
                     <i data-lucide="users" class="w-4 h-4"></i>
                     <span>Teams</span>
                 </a>
-                <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition">
+                <a href="statistics.html" class="border-b-2 border-transparent px-1 py-2 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                     <span>Statistics</span>
                 </a>
+                <!-- New Request button moved to top-right for consistent placement -->
             </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-800">Pending Requests</h2>
-            <p class="text-gray-500" id="pending-count">พบ 0 รายการที่รอการอนุมัติ</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Request</p>
+                    <h3 id="total-req" class="text-3xl font-bold mt-1">0</h3>
+                </div>
+                <i data-lucide="clipboard-check" class="w-10 h-10 text-gray-400"></i>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Pending Approval</p>
+                    <h3 id="pending-req" class="text-3xl font-bold mt-1 text-orange-500">0</h3>
+                </div>
+                <i data-lucide="clock" class="w-10 h-10 text-orange-400"></i>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Day Off</p>
+                    <h3 id="total-dayoff" class="text-3xl font-bold mt-1 text-purple-600">0</h3>
+                </div>
+                <i data-lucide="trending-up" class="w-10 h-10 text-purple-400"></i>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="pending-list">
-            </div>
+        <h2 class="text-xl font-bold text-gray-800 mb-6">Leave Balance</h2>
+        <div id="leave-balance" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
+            <!-- Leave balance cards will be rendered here by JS -->
+        </div>
+
+        <h2 class="text-xl font-bold text-gray-800 mb-6">Recent Request</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="recent-requests">
+            <!-- Recent requests rendered by JS -->
+        </div>
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="../../js/notifications.js"></script>
-    <script src="../../js/app.js"></script>
+    <!-- Attachment viewer modal -->
+    <div id="attachmentModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[1rem] shadow-2xl w-full max-w-3xl overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Attachments</h3>
+                <button onclick="closeAttachmentModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+                </button>
+            </div>
+            <div id="attachmentContent" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="noAttachmentsMessage" class="text-center text-gray-500 mt-4"></div>
+        </div>
+    </div>
 
-    <script src="../../js/api.js"></script>
-    <script src="../../js/leaveModal.js"></script>
-    <script>
-        lucide.createIcons();
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+        <script src="../../js/notifications.js"></script>
+        <script src="../../js/app.js"></script>
 
-        async function initManagerDashboard() {
-            const userId = localStorage.getItem('userId');
-            if (!userId) { window.location.href = '../../index.html'; return; }
-
-            try {
-                // 1. ดึงข้อมูล Manager
-                const user = await API.users.getById(userId);
-                document.getElementById('user-name').innerText = user.firstName + ' ' + user.lastName;
-                document.getElementById('user-role-dept').innerText = `${user.role} - ${user.department}`;
-
-                // 2. ดึงรายการลาทั้งหมดมา Filter เฉพาะที่รออนุมัติ (Pending)
-                // หมายเหตุ: ในระบบจริงเพื่อนควรทำ Endpoint สำหรับ Manager โดยเฉพาะ
-                const allLeaves = await API.leaves.getAll();
-                const pendingLeaves = allLeaves.filter(l => l.status.toLowerCase() === 'pending');
-                
-                document.getElementById('pending-count').innerText = `พบ ${pendingLeaves.length} รายการที่รอการอนุมัติ`;
-                renderPendingRequests(pendingLeaves);
-
-            } catch (error) {
-                UI.showToast('ดึงข้อมูลผิดพลาด: ' + error.message, 'error');
-            }
-        }
-
-        function renderPendingRequests(leaves) {
-            const container = document.getElementById('pending-list');
-            if (leaves.length === 0) {
-                container.innerHTML = '<div class="col-span-full py-12 text-center text-gray-400">ไม่มีใบลาค้างอนุมัติ</div>';
-                return;
-            }
-
-            container.innerHTML = leaves.map(req => `
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="font-bold text-lg">${req.employeeName || 'พนักงาน'}</h4>
-                            <span class="px-3 py-1 bg-orange-100 text-orange-600 text-xs rounded-full font-bold uppercase">${req.type}</span>
-                        </div>
-                        <div class="space-y-2 text-sm text-gray-500 mb-6">
-                            <p class="flex items-center space-x-2"><i data-lucide="calendar" class="w-4 h-4"></i> <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span></p>
-                            <p class="text-gray-700 italic">"${req.reason}"</p>
-                        </div>
-                    </div>
-                    <div class="flex space-x-3">
-                        <button onclick="handleDecision('${req.id}', 'Approve')" class="flex-1 py-2 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">Approve</button>
-                        <button onclick="handleDecision('${req.id}', 'Reject')" class="flex-1 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition">Reject</button>
-                    </div>
-                </div>
-            `).join('');
+        <script src="../../js/api.js"></script>
+        <script src="../../js/leaveModal.js"></script>
+        <script>
             lucide.createIcons();
-        }
 
-        async function handleDecision(leaveId, decision) {
-            try {
-                if (decision === 'Approve') {
-                    await API.leaves.approve(leaveId);
-                } else {
-                    const reason = prompt("ระบุเหตุผลที่ไม่อนุมัติ:");
-                    if (reason === null) return;
-                    await API.leaves.reject(leaveId, reason);
+            async function initManagerDashboard() {
+                const userId = localStorage.getItem('userId');
+                if (!userId) { window.location.href = '../../index.html'; return; }
+
+                try {
+                    const user = await API.users.getById(userId);
+                    // Build a safe display name: prefer first + last, then username, then email, finally a fallback
+                    const displayName = ((user && (user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user && (user.username || user.email)) ) || 'Manager';
+                    const roleText = (user && (user.roleName || user.role || user.department)) || '';
+                    document.getElementById('user-name').innerText = displayName;
+                    document.getElementById('user-role-dept').innerText = roleText;
+
+                    // Fetch only this user's leaves
+                    const leaves = await API.leaves.getAll(userId);
+                    // Debug: log leaves so developer can inspect payload shape when troubleshooting
+                    console.debug('manager leaves payload:', leaves);
+
+                    // Try to fetch entitlements for this manager (if backend exposes LeaveBalances)
+                    async function getLeaveEntitlements(userId) {
+                        const endpoints = [
+                            `/api/LeaveBalances/employee/${userId}`,
+                            `/api/LeaveBalances/mine`,
+                            `/api/LeaveBalances`
+                        ];
+                        for (const ep of endpoints) {
+                            try {
+                                console.debug && console.debug('Trying entitlement endpoint', ep);
+                                const data = await API.request(ep);
+                                if (!data) continue;
+                                if (data.leaveBalances) return data.leaveBalances;
+                                if (data.annual || data.sick || data.personal || data.unpaid) return data;
+                                if (Array.isArray(data)) {
+                                    const map = {};
+                                    data.forEach(item => {
+                                        if (item.type && (item.total !== undefined)) map[item.type] = item.total;
+                                        else if (item.key && (item.value !== undefined)) map[item.key] = item.value;
+                                        else if (item.leaveType && (item.amount !== undefined)) map[item.leaveType] = item.amount;
+                                    });
+                                    if (Object.keys(map).length) return map;
+                                }
+                                if (typeof data === 'object') return data;
+                            } catch (err) {
+                                console.debug && console.debug('Entitlement endpoint error for', ep, err && err.message);
+                                if (err && /401|Unauthorized/i.test(err.message)) { break; }
+                                continue;
+                            }
+                        }
+                        return null;
+                    }
+
+                    const entitlements = await getLeaveEntitlements(userId);
+                    console.debug && console.debug('manager entitlements for user', userId, entitlements);
+
+                    const pending = leaves.filter(l => (l.status || '').toString().toLowerCase() === 'pending').length;
+                    const approved = leaves.filter(l => (l.status || '').toString().toLowerCase() === 'approved').length;
+
+                    document.getElementById('total-req').innerText = leaves.length;
+                    document.getElementById('pending-req').innerText = pending;
+                    document.getElementById('total-dayoff').innerText = approved;
+
+                    renderLeaveBalances(leaves, entitlements);
+                    renderRecentRequests(leaves);
+
+                } catch (error) {
+                    UI.showToast('ดึงข้อมูลผิดพลาด: ' + error.message, 'error');
                 }
-                UI.showToast(`บันทึกสถานะ ${decision} สำเร็จ`, 'success');
-                initManagerDashboard(); // รีโหลดข้อมูลใหม่
-            } catch (error) {
-                UI.showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
             }
-        }
 
-        window.onload = initManagerDashboard;
-    </script>
-</body>
-</html>
+            function renderLeaveBalances(leaves, entitlements = null) {
+                const container = document.getElementById('leave-balance');
+                const types = [
+                    { key: 'Annual Leave', idKey: 'annual', total: 6, icon: 'sun', color: 'from-blue-400 to-blue-300 text-white' },
+                    { key: 'Sick Leave', idKey: 'sick', total: 3, icon: 'heart', color: 'from-pink-300 to-pink-200 text-white' },
+                    { key: 'Personal Leave', idKey: 'personal', total: 3, icon: 'user', color: 'from-purple-300 to-purple-200 text-white' },
+                    { key: 'Ordination Leave', idKey: 'ordination', total: 15, icon: 'crown', color: 'from-teal-300 to-teal-200 text-white' },
+                    { key: 'Unpaid Leave', idKey: 'unpaid', total: 365, icon: 'dollar-sign', color: 'from-green-300 to-green-200 text-white' }
+                ];
+                // compute used days per type: sum of approved leaves days for each leaveTypeName
+                const usedMap = {};
+                const norm = s => (s || '').toString().trim().toLowerCase();
+
+                leaves.forEach(l => {
+                    const status = (l.status || '').toString().toLowerCase();
+                    if (status !== 'approved') return; // count only approved days
+                    const days = LeaveRequest.calculateDays(l.startDate, l.endDate) || 0;
+
+                    // collect plausible keys for this leave entry
+                    const keys = new Set();
+                    const name = l.leaveTypeName || l.leaveType || l.type || '';
+                    if (name) keys.add(norm(name));
+                    if (l.leaveTypeId) keys.add(String(l.leaveTypeId));
+                    if (l.leaveTypeCode) keys.add(norm(l.leaveTypeCode));
+                    if (l.type) keys.add(norm(l.type));
+
+                    keys.forEach(k => {
+                        if (!k) return;
+                        usedMap[k] = (usedMap[k] || 0) + days;
+                    });
+                });
+
+                console.debug && console.debug('manager renderLeaveBalances entitlements:', entitlements, 'usedMap preview:', Object.entries(usedMap).slice(0,20));
+
+                container.innerHTML = types.map(t => {
+                    // find used by normalized keys, fallback to substring/id match
+                    const candidates = [norm(t.key), norm(t.idKey), String(t.idKey)].filter(Boolean);
+                    let used = 0;
+                    let matchedKey = null;
+                    for (const c of candidates) { if (usedMap[c]) { used = usedMap[c]; matchedKey = c; break; } }
+                    if (!used) {
+                        const want = norm(t.key);
+                        for (const k of Object.keys(usedMap)) {
+                            const kn = k.toString().toLowerCase();
+                            if (kn.includes(want) || want.includes(kn) || kn.includes(norm(t.idKey))) { used = usedMap[k]; matchedKey = k; break; }
+                        }
+                    }
+                    console.debug && console.debug('manager leave balance mapping', t.key, { candidates, matchedKey, used });
+                    const total = (entitlements && (entitlements[t.idKey] || entitlements[t.key] || entitlements[t.key.toLowerCase()])) || t.total;
+                    const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                    return `
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border hover:shadow-md transition">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="p-3 rounded-xl bg-gradient-to-tr ${t.color} flex items-center justify-center">
+                                    <i data-lucide="${t.icon}" class="w-5 h-5"></i>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-2xl font-bold">${used}</span>
+                                    <div class="text-gray-400 text-sm italic">of ${total} days</div>
+                                </div>
+                            </div>
+                            <p class="font-semibold text-gray-700 mb-3">${t.key}</p>
+                            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div class="h-2 rounded-full bg-gradient-to-r ${t.color}" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+            }
+
+            function renderRecentRequests(leaves) {
+                const container = document.getElementById('recent-requests');
+                container.innerHTML = leaves.slice(0, 6).map(req => `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border">
+                        <div class="flex justify-between mb-3">
+                            <h4 class="font-bold">${req.leaveTypeName || req.type || 'Leave Request'}</h4>
+                            ${UI.getStatusBadge(req.status)} 
+                        </div>
+                        <p class="text-sm text-gray-500 flex items-center space-x-2">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
+                        </p>
+                        <p class="text-sm text-gray-700 mt-1 italic leading-relaxed">Reason: ${req.reason}</p>
+                                <div class="mt-4 flex items-center justify-between">
+                                    ${(() => {
+                                        const has = (Array.isArray(req.attachments) && req.attachments.length) || (Array.isArray(req.files) && req.files.length) || req.attachmentUrl || req.fileUrl || req.attachment;
+                                        return `<button onclick="openAttachmentViewerById('${req.id}')" class="px-3 py-2 ${has ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 cursor-default'} rounded-lg text-sm transition">View Attachment</button>`;
+                                    })()}
+                                    <span class="text-xs text-gray-400">${req.totalDays ? req.totalDays + ' days' : ''}</span>
+                                </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            async function openAttachmentViewerById(id) {
+                const container = document.getElementById('attachmentContent');
+                const noMsg = document.getElementById('noAttachmentsMessage');
+                container.innerHTML = '';
+                noMsg.innerText = '';
+
+                try {
+                    // Try the attachments listing endpoint first
+                    let remote = null;
+                    if (API && API.leaves && API.leaves.getAttachments) {
+                        remote = await API.leaves.getAttachments(id).catch(() => null);
+                    }
+
+                    let urls = [];
+                    if (Array.isArray(remote) && remote.length) {
+                        urls = remote.map(r => r.filePath || r.fileUrl || r.url || r.fileName).filter(Boolean);
+                    }
+
+                    // If none returned, fall back to searching user's leaves for attachment fields
+                    if (!urls.length) {
+                        const userId = localStorage.getItem('userId');
+                        const leaves = await API.leaves.getAll(userId).catch(() => []);
+                        const req = leaves.find(l => l.id === id);
+                        if (req) {
+                            if (Array.isArray(req.attachments)) urls = req.attachments.map(a => (a && (a.url || a.filePath || a.fileUrl)) || a).filter(Boolean);
+                            else if (req.attachment) urls.push(req.attachment);
+                            else if (req.attachmentUrl) urls.push(req.attachmentUrl);
+                            else if (req.fileUrl) urls.push(req.fileUrl);
+                        }
+                    }
+
+                    // Normalize URLs using API.baseUrl
+                    const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/+$/, '') : '';
+                    const normalized = urls.map(u => {
+                        if (!u) return null;
+                        if (/^https?:\/\//i.test(u) || /^data:/i.test(u)) return u;
+                        if (base) return base + '/' + String(u).replace(/^\/+/, '');
+                        return u;
+                    }).filter(Boolean);
+
+                    if (!normalized.length) {
+                        noMsg.innerText = 'ไม่มีไฟล์แนบ';
+                        document.getElementById('attachmentModal').classList.remove('hidden');
+                        lucide.createIcons();
+                        return;
+                    }
+
+                    for (const u of normalized) {
+                        const isImage = /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(u) || /^data:image\//i.test(u);
+                        if (isImage) {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'bg-gray-50 p-2 rounded-lg flex items-center justify-center';
+                            const img = document.createElement('img');
+                            img.src = u;
+                            img.alt = 'attachment';
+                            img.className = 'max-h-60 object-contain';
+                            wrap.appendChild(img);
+                            container.appendChild(wrap);
+                        } else {
+                            const a = document.createElement('a');
+                            a.href = u;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            a.className = 'text-blue-600 underline block';
+                            a.innerText = u;
+                            container.appendChild(a);
+                        }
+                    }
+
+                    document.getElementById('attachmentModal').classList.remove('hidden');
+                    lucide.createIcons();
+                } catch (e) {
+                    console.warn('openAttachmentViewerById error', e);
+                    UI.showToast('ไม่สามารถโหลดไฟล์แนบ: ' + (e && e.message), 'error');
+                }
+            }
+
+            function closeAttachmentModal() {
+                document.getElementById('attachmentModal').classList.add('hidden');
+            }
+
+            window.onload = initManagerDashboard;
+        </script>
