@@ -3,162 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teams (Manager) - Leave System</title>
+    <title>Leave History (Manager) - Leave System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="/favicon.ico" />
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="bg-gray-50 font-sans text-gray-900 flex flex-col min-h-screen">
 
+    <!-- Navigation Area -->
     <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
                 <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white">
-                        <i data-lucide="users-2"></i>
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-md shadow-blue-200">
+                        <i data-lucide="file-clock"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold">Manager Name</h1>
-                        <p class="text-sm text-gray-500 italic">หัวหน้างาน - IT Department</p>
+                        <h1 class="text-lg font-bold" id="user-name">Manager Name</h1>
+                        <p class="text-sm text-gray-500 italic" id="user-role-dept">Manager - Department</p>
                     </div>
                 </div>
-                <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                    <span>New Request</span>
-                </button>
+                <div class="flex items-center space-x-4">
+                    <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-md shadow-blue-200">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span class="font-medium text-sm">New Request</span>
+                    </button>
+                </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
-                <a href="dashboard-mgr.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>My Request</span>
+                    <span>All Requests</span>
                 </a>
-                <a href="static-mgr.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap">
+                    <i data-lucide="file-clock" class="w-4 h-4"></i>
+                    <span>Leave History</span>
+                </a>
+                <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    <span>Static</span>
+                    <span>Leave Analytics</span>
                 </a>
-                <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 transition whitespace-nowrap">
-                    <i data-lucide="users-2" class="w-4 h-4"></i>
-                    <span>Teams</span>
+                <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                    <span>Team Salary</span>
+                </a>
+                <a href="attendance.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="user-check" class="w-4 h-4"></i>
+                    <span>Attendance</span>
                 </a>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-8">Teams</h2>
-
-        <div class="space-y-4" id="team-list">
-            </div>
-    </main>
-
-    <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
-            <div class="p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold" id="modalEmployeeName">Leave History</h3>
-                    <button onclick="closeHistoryModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
-                        <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
-                    </button>
-                </div>
-                
-                <div class="overflow-y-auto max-h-[400px] space-y-3" id="historyContent">
-                    </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Leave History</h2>
+            
+            <!-- Toggle buttons -->
+            <div class="flex bg-white p-1 pb-1 pt-1 rounded-xl shadow-sm border border-gray-100">
+                <button id="btnMyLeave" onclick="historyManager.setMode('my')" class="px-6 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white shadow transition-all">
+                    My Leave
+                </button>
+                <button id="btnTeamLeave" onclick="historyManager.setMode('team')" class="px-6 py-2 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-all">
+                    Team Leave
+                </button>
             </div>
         </div>
-    </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col">
+            <!-- Table Header Area -->
+            <div class="p-5 flex justify-between items-center border-b border-gray-100">
+                <h3 class="font-bold text-gray-800">Leave History</h3>
+                <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all flex items-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i>
+                    <span>Filter</span>
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[1000px]">
+                    <thead class="bg-white border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">EMPLOYEE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">LEAVE TYPE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">START DATE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">END DATE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">DAYS</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">STATUS</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">SUBMITTED</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">APPROVED BY</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody" class="divide-y divide-gray-50 text-sm">
+                        <!-- Filled by JS -->
+                        <tr>
+                            <td colspan="8" class="px-6 py-16 text-center text-gray-400">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i data-lucide="calendar" class="w-12 h-12 text-gray-200 mb-4 stroke-1"></i>
+                                    <p class="text-gray-400 font-medium">Loading history...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer Area-->
+            <div class="p-5 bg-white border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 font-medium">
+                <div id="paginationText">Showing 0 total records</div>
+                <div class="flex space-x-2">
+                    <button id="btnPrev" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:text-gray-900 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                        Previous
+                    </button>
+                    <button id="btnNext" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 bg-white hover:bg-gray-50 hover:text-gray-900 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script src="../../js/app.js"></script>
     <script src="../../js/api.js"></script>
-    <script>
-        lucide.createIcons();
-
-        let teamMembers = [];
-
-        async function initTeams() {
-            const userId = localStorage.getItem('userId');
-            if (!userId) { window.location.href = '../../index.html'; return; }
-
-            try {
-                // 1. ดึงข้อมูล Manager เพื่อแสดงผลใน Navbar
-                const user = await API.users.getById(userId);
-                document.querySelector('h1').innerText = user.firstName + ' ' + user.lastName;
-                document.querySelector('.text-sm.text-gray-500').innerText = `หัวหน้างาน - ${user.department}`;
-
-                // 2. ดึงรายชื่อพนักงานทั้งหมด (ในระบบจริงควรกรองเฉพาะแผนกเดียวกัน)
-                teamMembers = await API.users.getAll();
-                renderTeamList(teamMembers);
-
-            } catch (error) {
-                UI.showToast('ไม่สามารถโหลดข้อมูลทีมได้: ' + error.message, 'error');
-            }
-        }
-
-        function renderTeamList(members) {
-            const list = document.getElementById('team-list');
-            if (members.length === 0) {
-                list.innerHTML = '<p class="text-center text-gray-400 py-10">ไม่พบรายชื่อพนักงานในทีม</p>';
-                return;
-            }
-
-            list.innerHTML = members.map(member => `
-                <div class="bg-white px-6 py-4 rounded-full shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200 transition-all">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
-                            <i data-lucide="user" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <span class="font-bold text-gray-700">${member.firstName} ${member.lastName}</span>
-                            <p class="text-[10px] text-gray-400 uppercase font-bold">${member.department || 'N/A'}</p>
-                        </div>
-                    </div>
-                    <button onclick="viewHistory('${member.id}', '${member.firstName} ${member.lastName}')" class="bg-blue-600 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-blue-700 transition flex items-center space-x-2">
-                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
-                        <span>History Check</span>
-                    </button>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        async function viewHistory(empId, name) {
-            document.getElementById('modalEmployeeName').innerText = `History: ${name}`;
-            const historyContent = document.getElementById('historyContent');
-            historyContent.innerHTML = '<p class="text-center py-4">Loading history...</p>';
-            document.getElementById('historyModal').classList.remove('hidden');
-
-            try {
-                // ดึงประวัติการลาจริงของพนักงานคนนี้จาก API
-                const history = await API.leaves.getAll(empId);
-                
-                if (history.length === 0) {
-                    historyContent.innerHTML = '<p class="text-center py-4 text-gray-400">ไม่มีประวัติการลา</p>';
-                    return;
-                }
-
-                historyContent.innerHTML = history.map(req => `
-                    <div class="p-4 bg-gray-50 rounded-2xl flex justify-between items-center border border-gray-100">
-                        <div>
-                            <p class="font-bold text-gray-800">${req.type}</p>
-                            <p class="text-xs text-gray-400">${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</p>
-                        </div>
-                        ${UI.getStatusBadge(req.status)}
-                    </div>
-                `).join('');
-                lucide.createIcons();
-
-            } catch (error) {
-                historyContent.innerHTML = `<p class="text-center py-4 text-red-500">Error: ${error.message}</p>`;
-            }
-        }
-
-        function closeHistoryModal() {
-            document.getElementById('historyModal').classList.add('hidden');
-        }
-
-        window.onload = initTeams;
-    </script>
+    <script src="../../js/leaveModal.js"></script>
+    <script src="../../js/managerLeaveHistory.js"></script>
 </body>
 </html>

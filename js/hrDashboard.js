@@ -23,9 +23,10 @@ async function initHRDashboard() {
     const entitlements = await getLeaveEntitlements(userId);
     console.debug && console.debug('HR entitlements for user', userId, entitlements);
     renderLeaveBalances(leaves, entitlements);
-        renderRecentRequests(leaves);
+    renderRecentRequests(leaves);
+    await renderAttendance();
 
-        lucide.createIcons();
+    lucide.createIcons();
     } catch (e) {
         console.error('initHRDashboard error', e);
         if (typeof UI !== 'undefined' && UI.showToast) UI.showToast('ไม่สามารถโหลดข้อมูล HR Dashboard', 'error');
@@ -211,6 +212,190 @@ function renderRecentRequests(leaves) {
         </div>
     `).join('');
     lucide.createIcons();
+}
+
+/* Attendance Helper Functions */
+function startClock() {
+    const nowEl = document.getElementById('current-time');
+    const dateEl = document.getElementById('current-date');
+    if (!nowEl || !dateEl) return;
+    function tick() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        nowEl.innerText = `${hh}:${mm}:${ss}`;
+        dateEl.innerText = d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    tick();
+    setInterval(tick, 1000);
+}
+
+function attendanceStorageKey(userId, dateStr) {
+    return `attendance:${userId}:${dateStr}`;
+}
+
+function formatTime(ts) {
+    if (!ts) return '';
+    try { const d = new Date(ts); return d.toLocaleTimeString(); } catch (e) { return ts; }
+}
+
+async function performCheckIn(userId) {
+    if (typeof API !== 'undefined' && API.attendance && API.attendance.checkIn) {
+        try {
+            const body = { employeeID: userId };
+            const resp = await API.attendance.checkIn(body);
+            try {
+                const today = new Date().toISOString().slice(0,10);
+                const key = attendanceStorageKey(userId, today);
+                localStorage.setItem(key, JSON.stringify(resp));
+            } catch (e) {}
+            try { UI.showToast('Checked in', 'success'); } catch(e){}
+            return { ok: true, record: resp };
+        } catch (e) {
+            return { ok: false, error: e };
+        }
+    }
+    const today = new Date().toISOString().slice(0,10);
+    const key = attendanceStorageKey(userId, today);
+    const payload = { status: 'checked-in', checkInTime: new Date().toISOString(), employeeID: userId };
+    try { localStorage.setItem(key, JSON.stringify(payload)); return { ok: true, record: payload }; } catch (e) { return { ok: false, error: e }; }
+}
+
+async function performCheckOut(userId) {
+    if (typeof API !== 'undefined' && API.attendance && API.attendance.checkOut) {
+        try {
+            const body = { employeeID: userId };
+            const resp = await API.attendance.checkOut(body);
+            try {
+                const today = new Date().toISOString().slice(0,10);
+                const key = attendanceStorageKey(userId, today);
+                localStorage.setItem(key, JSON.stringify(resp));
+            } catch (e) {}
+            try { UI.showToast('Checked out', 'success'); } catch(e){}
+            return { ok: true, record: resp };
+        } catch (e) {
+            return { ok: false, error: e };
+        }
+    }
+    const today = new Date().toISOString().slice(0,10);
+    const key = attendanceStorageKey(userId, today);
+    const prev = localStorage.getItem(key);
+    const payload = prev ? JSON.parse(prev) : { status: 'checked-in', checkInTime: null, employeeID: userId };
+    payload.status = 'checked-out';
+    payload.checkOutTime = new Date().toISOString();
+    try { localStorage.setItem(key, JSON.stringify(payload)); return { ok: true, record: payload }; } catch (e) { return { ok: false, error: e }; }
+}
+
+function readAttendanceLocal(userId) {
+    const today = new Date().toISOString().slice(0,10);
+    const key = attendanceStorageKey(userId, today);
+    const raw = localStorage.getItem(key);
+    try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+
+async function renderAttendance() {
+    startClock();
+    const userId = localStorage.getItem('userId');
+    const statusBadge = document.getElementById('attendance-status-badge');
+    if (!statusBadge) return; // UI doesn't exist
+    const checkinEl = document.getElementById('attendance-checkin-time');
+    const checkoutEl = document.getElementById('attendance-checkout-time');
+    const totalHoursEl = document.getElementById('attendance-total-hours');
+    const actionBtn = document.getElementById('attendance-action');
+    const actionText = document.getElementById('attendance-action-text');
+    const actionIcon = document.getElementById('attendance-action-icon');
+
+    if (!userId) {
+        statusBadge.innerText = 'Not signed in';
+        if (actionBtn) actionBtn.disabled = true;
+        return;
+    }
+
+    let record = null;
+    if (typeof API !== 'undefined' && API.attendance && API.attendance.getToday) {
+        try { record = await API.attendance.getToday(userId); } catch (e) { record = null; }
+    }
+    if (!record) record = readAttendanceLocal(userId);
+
+    function formatTimeOnly(ts) {
+        if (!ts) return '--:--:--';
+        try { const d = new Date(ts); return d.toTimeString().split(' ')[0]; } catch (e) { return '--:--:--'; }
+    }
+
+    function updateUI(rec) {
+        const st = rec ? (rec.status || '').toString().toLowerCase() : '';
+        const hasCheckOut = rec && (!!rec.checkOutTime || st.includes('out'));
+        const hasCheckIn = rec && (!!rec.checkInTime || st.includes('in') || st === 'present');
+
+        checkinEl.innerHTML = `<span>--:--:--</span>`;
+        checkoutEl.innerHTML = `<span>--:--:--</span>`;
+        totalHoursEl.innerText = `0.00 hours`;
+
+        if (hasCheckIn) {
+            checkinEl.innerHTML = `<i data-lucide="log-in" class="w-4 h-4 text-green-500 mr-1"></i><span class="text-green-600">${formatTimeOnly(rec.checkInTime)}</span>`;
+        }
+        
+        if (hasCheckOut) {
+            checkoutEl.innerHTML = `<i data-lucide="log-out" class="w-4 h-4 text-red-500 mr-1"></i><span class="text-red-600">${formatTimeOnly(rec.checkOutTime)}</span>`;
+        }
+
+        if (hasCheckIn && hasCheckOut && rec.checkInTime && rec.checkOutTime) {
+            const diffMs = new Date(rec.checkOutTime) - new Date(rec.checkInTime);
+            const diffHrs = (diffMs / (1000 * 60 * 60)).toFixed(2);
+            totalHoursEl.innerText = `${diffHrs} hours`;
+        }
+
+        if (!rec || (!hasCheckIn && !hasCheckOut)) {
+            statusBadge.innerText = 'Not checked in';
+            statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-gray-200 text-gray-700 rounded-full';
+            actionText.innerText = 'Check In';
+            actionIcon.setAttribute('data-lucide', 'log-in');
+            actionBtn.className = 'mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 transition-colors';
+            actionBtn.disabled = false;
+            actionBtn.onclick = async () => {
+                actionBtn.disabled = true;
+                const res = await performCheckIn(userId);
+                actionBtn.disabled = false;
+                if (res.ok) {
+                    if (res.record) {
+                        try { const today = new Date().toISOString().slice(0,10); localStorage.setItem(attendanceStorageKey(userId,today), JSON.stringify(res.record)); } catch(e){}
+                    }
+                    renderAttendance();
+                } else UI.showToast('ไม่สามารถเช็คอิน: ' + (res.error && res.error.message ? res.error.message : ''), 'error');
+            };
+        } else if (hasCheckOut) {
+            statusBadge.innerText = 'Completed';
+            statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-green-100 text-green-700 rounded-full';
+            actionText.innerText = 'Attendance Completed';
+            actionIcon.setAttribute('data-lucide', 'check-circle');
+            actionBtn.className = 'mt-6 w-full bg-gray-100 text-gray-400 py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 cursor-not-allowed transition-colors';
+            actionBtn.onclick = () => {};
+            actionBtn.disabled = true;
+        } else {
+            statusBadge.innerText = 'Checked In';
+            statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-700 rounded-full';
+            actionText.innerText = 'Check Out';
+            actionIcon.setAttribute('data-lucide', 'log-out');
+            actionBtn.className = 'mt-6 w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 transition-colors';
+            actionBtn.disabled = false;
+            actionBtn.onclick = async () => {
+                actionBtn.disabled = true;
+                const res = await performCheckOut(userId);
+                actionBtn.disabled = false;
+                if (res.ok) {
+                    if (res.record) {
+                        try { const today = new Date().toISOString().slice(0,10); localStorage.setItem(attendanceStorageKey(userId,today), JSON.stringify(res.record)); } catch(e){}
+                    }
+                    renderAttendance();
+                } else UI.showToast('ไม่สามารถเช็คเอาท์: ' + (res.error && res.error.message ? res.error.message : ''), 'error');
+            };
+        }
+        
+        lucide.createIcons();
+    }
+
+    updateUI(record);
 }
 
 // Wait for dependencies (API and UI) to be available before initializing.

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Quota Management - HR Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="/favicon.ico" />
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-100">
+                        <i data-lucide="calendar-check"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold">HR Management</h1>
+                        <p class="text-sm text-gray-500 italic">การจัดการสิทธิวันลา</p>
+                    </div>
+                </div>
+                <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    <span>New Request</span>
+                </button>
+            </div>
+            <div class="flex space-x-8 mt-2 overflow-x-auto">
+                <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>My Request</span>
+                </a>    
+                <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                    <span>All Requests</span>
+                </a>
+                <a href="manage-info.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Manage Information</span>
+                </a>
+                <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
+                    <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                    <span>Team Salary</span>
+                </a>
+                <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap transition">
+                    <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                    <span>Leave Quota Management</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 tracking-tight">Leave Quota Management</h2>
+
+        <div class="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6">
+            <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div>
+                    <h3 class="font-bold text-lg text-gray-800">จัดการสิทธิวันลา</h3>
+                    <p class="text-sm text-gray-500 mt-1">แก้ไขจำนวนวันลาคงเหลือของพนักงานแต่ละคน</p>
+                </div>
+                
+                <div class="relative w-full md:w-80">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-2.5"></i>
+                    <input type="text" id="searchInput" oninput="quotaManager.handleSearch(this.value)" placeholder="Search employee..." class="w-full pl-9 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[1000px] text-left border-collapse">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">พนักงาน</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">แผนก</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">อายุงาน (ปี)</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาพักร้อน</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาป่วย</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลากิจ</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาอุปสมบท</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">UNPAID</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quotaTableBody" class="divide-y divide-gray-50 text-sm">
+                        <!-- Content loaded by JS -->
+                        <tr>
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-400">Loading quota data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex items-start space-x-3">
+            <i data-lucide="info" class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
+            <div class="text-sm text-blue-800">
+                <p class="font-bold mb-2">หมายเหตุ:</p>
+                <ul class="list-disc list-inside space-y-1 ml-1 text-blue-700">
+                    <li>คลิกปุ่ม "แก้ไข" เพื่อจัดการสิทธิวันลาของพนักงานรายบุคคล</li>
+                    <li>ตัวเลขแสดงในรูปแบบ จำนวนที่ใช้ไปแล้ว / สิทธิทั้งหมด (เช่น 4/6 คือ ใช้ไปแล้ว 4 วัน จากทั้งหมด 6 วัน)</li>
+                    <li>สิทธิลาพักร้อนจะเพิ่มขึ้นตามอายุงานโดยอัตโนมัติ (1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7+ ปี = 8 วัน) หรือสามารถปรับแก้ไขเองได้</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Leave Quota Modal -->
+    <div id="editQuotaModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-start bg-white sticky top-0 z-10 shrink-0">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">แก้ไขสิทธิวันลา</h3>
+                    <p id="modalEmpName" class="text-sm text-gray-600 mt-1 font-medium">John Doe - Software Developer</p>
+                    <p id="modalEmpTenure" class="text-xs text-gray-500">อายุงาน: 4.0 ปี</p>
+                </div>
+                <button onclick="quotaManager.closeModal()" class="p-2 hover:bg-gray-100 rounded-full transition text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Body (Scrollable) -->
+            <div class="p-8 overflow-y-auto grow custom-scrollbar">
+                <form id="editQuotaForm" class="space-y-6">
+                    <!-- Form content injected by JS -->
+                </form>
+
+                <!-- Warning Box -->
+                <div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex items-start space-x-3">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"></i>
+                    <div class="text-sm text-yellow-800">
+                        <p class="font-bold mb-1">คำเตือน:</p>
+                        <ul class="list-disc list-inside space-y-1 ml-1 text-yellow-700">
+                            <li>การเปลี่ยนแปลงจะมีผลทันทีหลังจากบันทึก</li>
+                            <li>ควรตรวจสอบอายุงานและนโยบายบริษัทก่อนแก้ไข</li>
+                            <li>วันคงเหลือควรน้อยกว่าหรือเท่ากับวันทั้งหมด</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-5 border-t border-gray-100 bg-white sticky bottom-0 z-10 flex items-center justify-end space-x-4 shrink-0">
+                <button onclick="quotaManager.closeModal()" class="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition">
+                    ยกเลิก
+                </button>
+                <button onclick="quotaManager.saveQuotaChanges()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-lg shadow-blue-200 flex items-center space-x-2">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>บันทึกการเปลี่ยนแปลง</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 20px;
+        }
+    </style>
+
+    <script src="../../js/app.js"></script>
+    <script src="../../js/api.js"></script>
+    <script src="../../js/leaveModal.js"></script>
+    <script src="../../js/hrLeaveQuota.js"></script>
+</body>
+</html>
