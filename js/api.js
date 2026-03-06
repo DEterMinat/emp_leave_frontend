@@ -137,6 +137,35 @@ const API = {
         }
     },
 
+    // ============================================
+    // Attendance Endpoints
+    // Swagger shows: POST /api/Attendance/check-in, POST /api/Attendance/check-out,
+    // GET /api/Attendance/today/{employeeId}, GET /api/Attendance/history/{employeeId}
+    // These helpers wrap those endpoints for use by the UI.
+    attendance: {
+        async checkIn(payload = {}) {
+            return API.request('/api/Attendance/check-in', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+        },
+
+        async checkOut(payload = {}) {
+            return API.request('/api/Attendance/check-out', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+        },
+
+        async getToday(employeeId) {
+            return API.request(`/api/Attendance/today/${employeeId}`);
+        },
+
+        async getHistory(employeeId) {
+            return API.request(`/api/Attendance/history/${employeeId}`);
+        }
+    },
+
     references: {
         async getLeaveTypes() {
             return API.request('/api/LeaveTypes'); 

@@ -40,6 +40,36 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Attendance panel (Check in / Check out) -->
+        <section id="attendance-section" class="mb-8">
+            <div class="bg-white rounded-2xl shadow-sm border p-8">
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="clock" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <div id="current-time" class="text-4xl font-bold text-gray-800">--:--:--</div>
+                    <div id="current-date" class="text-sm text-gray-500 mt-1">--</div>
+
+                    <div class="w-full mt-8 bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-2 flex items-center space-x-2"><i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i><span>Today's Attendance</span></h3>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm text-gray-500">Status</div>
+                                <div id="attendance-status" class="text-base font-medium text-gray-700 mt-1">Not checked in</div>
+                            </div>
+                            <div class="text-right">
+                                <div id="attendance-times" class="text-sm text-gray-500">&nbsp;</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="attendance-action" class="mt-6 w-full md:w-1/2 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-lg flex items-center justify-center space-x-2">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
+                        <span id="attendance-action-text">Check In</span>
+                    </button>
+                </div>
+            </div>
+        </section>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between">
                 <div>
@@ -124,6 +154,9 @@
 
                 // 4. Render รายการล่าสุด
                 renderRecentRequests(leaves);
+
+                // Render attendance UI after data loaded
+                renderAttendance();
 
                 // 5. Try to fetch entitlements from backend (if available). If not available, getLeaveEntitlements
                 // will return null and renderLeaveBalances will fall back to client-side defaults.
@@ -262,6 +295,200 @@
 
             // redraw icons
             lucide.createIcons();
+        }
+
+        /* Attendance helper: show clock and check-in/out actions
+         * Behavior:
+         * - If `API.attendance.checkIn` / `API.attendance.checkOut` exist, call them.
+         * - Otherwise use localStorage as a demo store: key `attendance:{userId}:{yyyy-mm-dd}`.
+         */
+        function startClock() {
+            const nowEl = document.getElementById('current-time');
+            const dateEl = document.getElementById('current-date');
+            function tick() {
+                const d = new Date();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                const ss = String(d.getSeconds()).padStart(2, '0');
+                nowEl.innerText = `${hh}:${mm}:${ss}`;
+                dateEl.innerText = d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        function attendanceStorageKey(userId, dateStr) {
+            return `attendance:${userId}:${dateStr}`;
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            try { const d = new Date(ts); return d.toLocaleTimeString(); } catch (e) { return ts; }
+        }
+
+        async function performCheckIn(userId) {
+            // Prefer API if available
+            if (typeof API !== 'undefined' && API.attendance && API.attendance.checkIn) {
+                try {
+                    // Backend expects { employeeID, notes? }
+                    const body = { employeeID: userId };
+                    console.debug && console.debug('attendance.checkIn request body', body);
+                    const resp = await API.attendance.checkIn(body);
+                    console.debug && console.debug('attendance.checkIn response', resp);
+                    // resp should be attendance object per Swagger; persist for fallback
+                    try {
+                        const today = new Date().toISOString().slice(0,10);
+                        const key = attendanceStorageKey(userId, today);
+                        localStorage.setItem(key, JSON.stringify(resp));
+                    } catch (e) { /* ignore storage errors */ }
+                    // show a friendly toast if API returned useful info
+                    try { UI.showToast('Checked in' + (resp && resp.checkInTime ? ' at ' + formatTime(resp.checkInTime) : ''), 'success'); } catch(e){}
+                    return { ok: true, record: resp };
+                } catch (e) {
+                    console.debug && console.debug('attendance.checkIn error', e);
+                    try { UI.showToast('Check-in failed: ' + (e && e.message ? e.message : e), 'error'); } catch(ex){}
+                    return { ok: false, error: e };
+                }
+            }
+            // local fallback
+            const today = new Date().toISOString().slice(0,10);
+            const key = attendanceStorageKey(userId, today);
+            const payload = { status: 'checked-in', checkInTime: new Date().toISOString(), employeeID: userId };
+            try { localStorage.setItem(key, JSON.stringify(payload)); return { ok: true, record: payload }; } catch (e) { return { ok: false, error: e }; }
+        }
+
+        async function performCheckOut(userId) {
+            if (typeof API !== 'undefined' && API.attendance && API.attendance.checkOut) {
+                try {
+                    const body = { employeeID: userId };
+                    console.debug && console.debug('attendance.checkOut request body', body);
+                    const resp = await API.attendance.checkOut(body);
+                    console.debug && console.debug('attendance.checkOut response', resp);
+                    try {
+                        const today = new Date().toISOString().slice(0,10);
+                        const key = attendanceStorageKey(userId, today);
+                        localStorage.setItem(key, JSON.stringify(resp));
+                    } catch (e) { /* ignore storage errors */ }
+                    try { UI.showToast('Checked out' + (resp && resp.checkOutTime ? ' at ' + formatTime(resp.checkOutTime) : ''), 'success'); } catch(e){}
+                    return { ok: true, record: resp };
+                } catch (e) {
+                    console.debug && console.debug('attendance.checkOut error', e);
+                    try { UI.showToast('Check-out failed: ' + (e && e.message ? e.message : e), 'error'); } catch(ex){}
+                    return { ok: false, error: e };
+                }
+            }
+            const today = new Date().toISOString().slice(0,10);
+            const key = attendanceStorageKey(userId, today);
+            const prev = localStorage.getItem(key);
+            const payload = prev ? JSON.parse(prev) : { status: 'checked-in', checkInTime: null, employeeID: userId };
+            payload.status = 'checked-out';
+            payload.checkOutTime = new Date().toISOString();
+            try { localStorage.setItem(key, JSON.stringify(payload)); return { ok: true, record: payload }; } catch (e) { return { ok: false, error: e }; }
+        }
+
+        function readAttendanceLocal(userId) {
+            const today = new Date().toISOString().slice(0,10);
+            const key = attendanceStorageKey(userId, today);
+            const raw = localStorage.getItem(key);
+            try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+        }
+
+        async function renderAttendance() {
+            startClock();
+            const userId = localStorage.getItem('userId');
+            const statusEl = document.getElementById('attendance-status');
+            const timesEl = document.getElementById('attendance-times');
+            const actionBtn = document.getElementById('attendance-action');
+            const actionText = document.getElementById('attendance-action-text');
+
+            if (!userId) {
+                statusEl.innerText = 'Not signed in';
+                actionBtn.disabled = true;
+                return;
+            }
+
+            // Try remote read if available (expecting attendance object per Swagger)
+            let record = null;
+            if (typeof API !== 'undefined' && API.attendance && API.attendance.getToday) {
+                try { record = await API.attendance.getToday(userId); } catch (e) { record = null; }
+            }
+            if (!record) record = readAttendanceLocal(userId);
+
+            function updateUI(rec) {
+                if (!rec) {
+                    statusEl.innerText = 'Not checked in';
+                    timesEl.innerText = '';
+                    actionText.innerText = 'Check In';
+                    actionBtn.classList.remove('bg-green-600');
+                    actionBtn.classList.add('bg-red-600');
+                    actionBtn.onclick = async () => {
+                        actionBtn.disabled = true;
+                        const res = await performCheckIn(userId);
+                        actionBtn.disabled = false;
+                        if (res.ok) {
+                            // If server returned record, use it; else re-render from local cache
+                            if (res.record) {
+                                try { const today = new Date().toISOString().slice(0,10); localStorage.setItem(attendanceStorageKey(userId,today), JSON.stringify(res.record)); } catch(e){}
+                            }
+                            renderAttendance();
+                        } else UI.showToast('ไม่สามารถเช็คอิน: ' + (res.error && res.error.message ? res.error.message : ''), 'error');
+                    };
+                } else if (rec.status === 'checked-in') {
+                    // normalize status checks (backend may use different casing/strings)
+                    const st = (rec.status || '').toString().toLowerCase();
+                    const hasCheckOut = !!rec.checkOutTime || st.includes('out');
+                    if (hasCheckOut) {
+                        // already checked out
+                        statusEl.innerText = 'Checked Out';
+                        timesEl.innerHTML = `<div class="text-sm text-gray-600">In: ${formatTime(rec.checkInTime) || '-'}<br/>Out: ${formatTime(rec.checkOutTime) || '-'}</div>`;
+                        actionText.innerText = 'Checked';
+                        actionBtn.classList.remove('bg-red-600','bg-green-600');
+                        actionBtn.classList.add('bg-gray-300');
+                        actionBtn.onclick = () => {};
+                        actionBtn.disabled = true;
+                    } else {
+                        statusEl.innerText = 'Checked In';
+                        timesEl.innerHTML = `<div class="text-sm text-gray-600">&#10145; ${formatTime(rec.checkInTime)}</div>`;
+                        actionText.innerText = 'Check Out';
+                        actionBtn.classList.remove('bg-red-600');
+                        actionBtn.classList.add('bg-green-600');
+                        actionBtn.onclick = async () => {
+                            actionBtn.disabled = true;
+                            const res = await performCheckOut(userId);
+                            actionBtn.disabled = false;
+                            if (res.ok) {
+                                if (res.record) {
+                                    try { const today = new Date().toISOString().slice(0,10); localStorage.setItem(attendanceStorageKey(userId,today), JSON.stringify(res.record)); } catch(e){}
+                                }
+                                renderAttendance();
+                            } else UI.showToast('ไม่สามารถเช็คเอาท์: ' + (res.error && res.error.message ? res.error.message : ''), 'error');
+                        };
+                    }
+                } else if (rec.status === 'checked-out') {
+                    statusEl.innerText = 'Checked Out';
+                    timesEl.innerHTML = `<div class="text-sm text-gray-600">In: ${formatTime(rec.checkInTime) || '-'}<br/>Out: ${formatTime(rec.checkOutTime) || '-'}</div>`;
+                    actionText.innerText = 'Checked';
+                    actionBtn.classList.remove('bg-red-600','bg-green-600');
+                    actionBtn.classList.add('bg-gray-300');
+                    actionBtn.onclick = () => {};
+                    actionBtn.disabled = true;
+                } else {
+                    // Fallback: look for times to determine state
+                    if (rec.checkOutTime) {
+                        statusEl.innerText = 'Checked Out';
+                        timesEl.innerHTML = `<div class="text-sm text-gray-600">In: ${formatTime(rec.checkInTime) || '-'}<br/>Out: ${formatTime(rec.checkOutTime) || '-'}</div>`;
+                        actionBtn.disabled = true;
+                    } else if (rec.checkInTime) {
+                        statusEl.innerText = 'Checked In';
+                        timesEl.innerHTML = `<div class="text-sm text-gray-600">&#10145; ${formatTime(rec.checkInTime)}</div>`;
+                        actionText.innerText = 'Check Out';
+                    } else {
+                        statusEl.innerText = rec.status || 'Unknown';
+                    }
+                }
+            }
+
+            updateUI(record);
         }
 
         // ฟังก์ชันสำหรับสร้าง Card รายการลาล่าสุดแบบ Dynamic

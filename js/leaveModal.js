@@ -13,43 +13,64 @@
             
             <form id="leaveForm" class="p-0 sm:p-0 flex-1 flex flex-col" style="box-sizing: border-box;">
                 <div id="leaveModalBody" class="overflow-auto p-6 sm:p-8" style="max-height:calc(90vh - 180px);">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Leave Type</label>
-                    <select id="leaveType" class="w-full border-0 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 font-medium appearance-none">
-                        <option value="">Select Leave Type</option>
-                        <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
-                        <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
-                        <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
-                        <option value="69783baa111b105aeac97905">Ordination Leave (ลาบวช)</option>
-                        <option value="69783bc5111b105aeac97906">Unpaid Leave (ลางานไม่รับเงิน)</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-5">
+                <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Start Date</label>
-                        <input type="date" id="startDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Leave Type</label>
+                        <select id="leaveType" class="w-full border rounded-xl px-4 py-3 bg-white focus:ring-2 focus:ring-blue-200 outline-none text-gray-700 font-medium appearance-none">
+                            <option value="">Select Leave Type</option>
+                            <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
+                            <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
+                            <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
+                            <option value="69783baa111b105aeac97905">Ordination Leave (ลาบวช)</option>
+                            <option value="69783bc5111b105aeac97906">Unpaid Leave (ลางานไม่รับเงิน)</option>
+                        </select>
                     </div>
+
+                    <!-- Rules box (matches provided screenshot) -->
+                    <div class="bg-blue-50 border-l-4 border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="info" class="w-5 h-5 text-blue-500 mt-1"></i>
+                            <div>
+                                <p class="font-semibold mb-1">กฎการลาประเภทนี้:</p>
+                                <ul class="list-disc ml-5 text-sm text-blue-800 space-y-1">
+                                    <li>ขึ้นอยู่กับอายุงาน: 1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7-9 ปี = 8 วัน</li>
+                                    <li>สามารถทบได้ไม่เกิน 12 วัน</li>
+                                    <li>ต้องแจ้งล่วงหน้า 7 วัน</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+                            <div class="relative">
+                                <input type="date" id="startDate" placeholder="วว/ดด/ปปปป" class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
+                            <div class="relative">
+                                <input type="date" id="endDate" placeholder="วว/ดด/ปปปป" class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200">
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">End Date</label>
-                        <input type="date" id="endDate" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
+                        <textarea id="description" rows="4" placeholder="Brief description of your leave request..." class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200 resize-none"></textarea>
                     </div>
-                </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Description</label>
-                    <textarea id="description" rows="3" placeholder="Description" class="w-full border-0 rounded-2xl px-5 py-4 bg-gray-50 outline-none font-medium focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-                </div>
-
-                <div id="attachmentSection">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Attachments</label>
-                    <div id="attachmentDrop" class="border-2 border-dashed border-gray-100 rounded-[2rem] p-8 sm:p-10 text-center hover:bg-gray-50 transition cursor-pointer group relative" style="min-height:120px;">
-                        <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-12 h-12 group-hover:text-blue-400 transition"></i>
-                        <p class="text-sm font-medium text-gray-400">Click to upload or drag and drop</p>
-                        <p class="text-[10px] text-gray-300 mt-1 uppercase">PDF, DOC, JPG, PNG MAX(10MB)</p>
-                        <input type="file" class="hidden" id="fileInput" multiple>
+                    <div id="attachmentSection">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Attachments (Optional)</label>
+                        <div id="attachmentDrop" class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer group relative" style="min-height:120px;">
+                            <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-10 h-10 group-hover:text-blue-500 transition"></i>
+                            <p class="text-sm font-medium text-gray-600">Click to upload or drag and drop</p>
+                            <p class="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, JPG, PNG (max 10MB)</p>
+                            <input type="file" class="hidden" id="fileInput" multiple>
+                        </div>
+                        <div id="file-list" class="mt-4 space-y-2"></div>
                     </div>
-                    <div id="file-list" class="mt-4 space-y-2"></div>
                 </div>
                 </div>
 
