@@ -34,15 +34,12 @@
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>My Request</span>
+                    <span>Leave History</span>
                 </a>    
                 <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                     <span>All Requests</span>
                 </a>
-                <a href="manage-info.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
-                    <i data-lucide="users" class="w-4 h-4"></i>
-                    <span>Manage Information</span>
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap transition">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i>
@@ -163,6 +160,116 @@
             </div>
         </div>
     </div>
+
+    <!-- Edit Employee Information Modal -->
+    <div id="editEmployeeModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[95vh]">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-100 flex items-center bg-white z-10">
+                <button onclick="salaryManager.closeEditModal()" class="mr-4 p-2 hover:bg-gray-100 rounded-full transition-all">
+                    <i data-lucide="arrow-left" class="w-6 h-6 text-gray-700"></i>
+                </button>
+                <h3 class="text-xl font-bold text-gray-800">Edit Employee Information</h3>
+            </div>
+            
+            <!-- Body (Form) -->
+            <div class="p-8 overflow-y-auto flex-1 bg-gray-50/30">
+                <form id="editEmployeeForm" onsubmit="salaryManager.saveEdit(event)" class="space-y-6">
+                    <input type="hidden" id="editEmpId">
+                    
+                    <!-- Avatar Upload Logic (Visual Only for now) -->
+                    <div class="flex flex-col items-center mb-8">
+                        <div class="w-32 h-32 rounded-full border-2 border-purple-500/20 p-1 mb-4">
+                            <div class="w-full h-full rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shadow-inner">
+                                <i data-lucide="user" class="w-16 h-16"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- FirstName -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-500 mb-2">FirstName</label>
+                            <input type="text" id="editFirstName" required 
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700">
+                        </div>
+                        <!-- LastName -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-500 mb-2">LastName</label>
+                            <input type="text" id="editLastName" required 
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700">
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-500 mb-2">Email</label>
+                        <input type="email" id="editEmail" required 
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 cursor-not-allowed font-medium text-gray-500" readonly>
+                        <span class="text-[10px] text-gray-400 mt-1 block px-1">* Email changes must be handled via Account Settings</span>
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-500 mb-2">Phone</label>
+                        <input type="text" id="editPhone" placeholder="+66 8X-XXX-XXXX" 
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700">
+                    </div>
+
+                    <!-- Position -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-500 mb-2">Position</label>
+                        <input type="text" id="editPosition" required 
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700">
+                    </div>
+
+                    <!-- Department -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-500 mb-2">Department</label>
+                        <select id="editDept" required 
+                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700 appearance-none bg-white">
+                            <option value="Executive">Executive</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Human Resources">Human Resources</option>
+                            <option value="IT Department">IT Department</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Customer Support">Customer Support</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+                        <!-- Salary -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-500 mb-2">Base Salary (THB)</label>
+                            <input type="number" id="editBaseSalary" required 
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700 appearance-none">
+                        </div>
+                        <!-- Bonus -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-500 mb-2">Bonus (THB)</label>
+                            <input type="number" id="editBonus" placeholder="0" 
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700 appearance-none">
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex gap-4 pt-6 border-t border-gray-100">
+                        <button type="button" onclick="salaryManager.closeEditModal()" 
+                                class="flex-1 px-8 py-3.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all shadow-sm">
+                            Cancel
+                        </button>
+                        <button type="submit" id="saveEditBtn" 
+                                class="flex-1 px-8 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all shadow-md flex items-center justify-center gap-2">
+                            <i data-lucide="save" class="w-5 h-5"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
     <script src="../../js/app.js"></script>
     <script src="../../js/api.js"></script>

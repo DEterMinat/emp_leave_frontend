@@ -32,10 +32,8 @@
                             <i data-lucide="info" class="w-5 h-5 text-blue-500 mt-1"></i>
                             <div>
                                 <p class="font-semibold mb-1">กฎการลาประเภทนี้:</p>
-                                <ul class="list-disc ml-5 text-sm text-blue-800 space-y-1">
-                                    <li>ขึ้นอยู่กับอายุงาน: 1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7-9 ปี = 8 วัน</li>
-                                    <li>สามารถทบได้ไม่เกิน 12 วัน</li>
-                                    <li>ต้องแจ้งล่วงหน้า 7 วัน</li>
+                                <ul id="leaveRulesList" class="list-disc ml-5 text-sm text-blue-800 space-y-1">
+                                    <li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>
                                 </ul>
                             </div>
                         </div>
@@ -331,8 +329,46 @@
 
         // rules copied from original implementation (kept as-is for compatibility)
         function checkRules() {
-            const type = document.getElementById('leaveType').value;
+            const selectEl = document.getElementById('leaveType');
+            const type = selectEl.value;
+            const textContent = selectEl.options[selectEl.selectedIndex]?.text.toLowerCase() || '';
             const attachment = document.getElementById('attachmentSection');
+            const rulesList = document.getElementById('leaveRulesList');
+
+            // Find matching rules based on option text
+            if (textContent.includes('annual') || textContent.includes('พักผ่อน')) {
+                rulesList.innerHTML = `
+                    <li>ขึ้นอยู่กับอายุงาน: 1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7-9 ปี = 8 วัน</li>
+                    <li>สามารถทบได้ไม่เกิน 12 วัน</li>
+                    <li>ต้องแจ้งล่วงหน้า 7 วัน</li>
+                `;
+            } else if (textContent.includes('sick') || textContent.includes('ป่วย')) {
+                rulesList.innerHTML = `
+                    <li>ลาป่วยได้ 30 วัน/ปี (ได้รับค่าจ้าง)</li>
+                    <li>ลาเกิน 3 วัน ต้องมีใบรับรองแพทย์</li>
+                    <li>แจ้งหัวหน้างานก่อนหรือเช้าของวันที่ลา</li>
+                `;
+            } else if (textContent.includes('personal') || textContent.includes('กิจ')) {
+                rulesList.innerHTML = `
+                    <li>ลากิจได้ 3 วัน/ปี (ได้รับค่าจ้าง)</li>
+                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน</li>
+                    <li>ต้องได้รับการอนุมัติก่อนหยุดงาน</li>
+                `;
+            } else if (textContent.includes('ordination') || textContent.includes('บวช')) {
+                rulesList.innerHTML = `
+                    <li>ลาได้ไม่เกิน 15 วัน</li>
+                    <li>ต้องทำงานมาแล้วอย่างน้อย 1 ปี</li>
+                    <li>ลาได้ 1 ครั้งตลอดอายุการทำงาน</li>
+                `;
+            } else if (textContent.includes('unpaid') || textContent.includes('ไม่รับเงิน')) {
+                rulesList.innerHTML = `
+                    <li>ลาได้ 30 วัน/ปี</li>
+                    <li>ไม่ได้รับค่าจ้างในวันที่ลา</li>
+                    <li>ต้องได้รับการอนุมัติกรณีพิเศษจาก HR</li>
+                `;
+            } else {
+                rulesList.innerHTML = `<li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>`;
+            }
 
             // Original code referenced string types like 'personal' etc.
             // We keep the logic but note: if leaveType values are IDs, server-side mapping may be required.

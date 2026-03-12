@@ -84,56 +84,70 @@
     <script>
         lucide.createIcons();
 
-        // ส่วนการจัดการส่งฟอร์ม Login จริง
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = loginForm.querySelector('button[type="submit"]');
+
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // ดึงค่าจากช่อง Input
-            const username = document.getElementById('employeeId').value;
-            const password = document.getElementById('password').value;
+            const usernameInput = document.getElementById('employeeId');
+            const passwordInput = document.getElementById('password');
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                UI.showToast('กรุณากรอก Username และ Password ให้ครบถ้วน', 'warning');
+                if (!username) usernameInput.focus();
+                else passwordInput.focus();
+                return;
+            }
 
             try {
-                // ยิง API ไปที่ Backend (ตรวจสอบ Endpoint /api/users/login กับเพื่อนอีกครั้ง)
+                loginBtn.disabled = true;
+                const originalContent = loginBtn.innerHTML;
+                loginBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Checking...</span>';
+                lucide.createIcons();
+
                 const response = await API.request('/api/auth/login', {
                     method: 'POST',
-                    body: JSON.stringify({ 
-                        username: username,
-                        password: password 
-                    })
+                    body: JSON.stringify({ username, password })
                 });
 
                 if (response) {
-                    // 1. เก็บข้อมูลลงเครื่องเพื่อใช้ในหน้า Dashboard
                     localStorage.setItem('token', response.token);
                     localStorage.setItem('userId', response.userId);
                     localStorage.setItem('userRole', response.roleName);
                     localStorage.setItem('userName', response.username);
 
-                    // 2. แสดงข้อความแจ้งเตือนสำเร็จ
-                    UI.showToast('เข้าสู่ระบบสำเร็จ', 'success');
+                    UI.showToast('🎉 เข้าสู่ระบบสำเร็จ!', 'success');
 
-                    // 3. ตรวจสอบ Role และเปลี่ยนหน้าไปตามสิทธิ์
-                    // Normalize the role name to handle different casings/variants
                     const roleName = (response.roleName || '').toString().trim().toLowerCase();
-
                     const routes = {
                         'employee': 'pages/employee/dashboard.html',
                         'manager': 'pages/manager/dashboard.html',
                         'hr': 'pages/hr/dashboard.html',
-                        // treat admin as manager (admins should land on manager dashboard)
                         'admin': 'pages/manager/dashboard.html'
                     };
 
-                    // Small delay so the user sees the success toast
                     const targetRoute = routes[roleName] || 'pages/employee/dashboard.html';
                     setTimeout(() => {
                         window.location.href = targetRoute;
                     }, 1000);
                 }
             } catch (error) {
-                // แสดงข้อความเมื่อเกิดข้อผิดพลาด (เช่น รหัสผิด หรือ Server ดับ)
-                UI.showToast('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, 'error');
+                let msg = 'Username หรือ Password ไม่ถูกต้อง';
+                if (error.message.includes('401')) {
+                    msg = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+                } else if (error.message.includes('Failed to fetch')) {
+                    msg = 'ไม่สามารถเชื่อมต่อ Server ได้';
+                }
+                
+                UI.showToast(msg, 'error');
                 console.error('Login Error:', error);
+                
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = `<span>Sign In</span><i data-lucide="arrow-right" class="w-5 h-5"></i>`;
+                lucide.createIcons();
             }
         });
 

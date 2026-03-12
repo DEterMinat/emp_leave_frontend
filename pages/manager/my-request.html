@@ -56,20 +56,27 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800" id="request-title">My Leave Request (0)</h2>
-            <div class="flex space-x-2">
-                <select id="statusFilter" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>All Status</option>
-                    <option>Approved</option>
-                    <option>Pending</option>
-                    <option>Rejected</option>
-                </select>
+        <!-- Pending Section -->
+        <div class="mb-12">
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                Pending Approvals 
+                <span id="pending-count" class="bg-amber-100 text-amber-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="pending-list">
+                <!-- Loaded dynamically -->
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="request-list">
+        <!-- Approved Section -->
+        <div>
+            <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                Approved Requests
+                <span id="approved-count" class="bg-green-100 text-green-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="approved-list">
+                <!-- Loaded dynamically -->
             </div>
+        </div>
     </main>
 
     <!-- Attachment viewer modal -->
@@ -92,7 +99,6 @@
     <script>
         lucide.createIcons();
 
-        // ตัวแปรเก็บข้อมูลการลาทั้งหมดเพื่อใช้ในการ Filter
         let allLeaves = [];
 
         async function initMyRequests() {
@@ -103,257 +109,222 @@
             }
 
             try {
-                // 1. ดึงข้อมูล User มาแสดงใน Navbar (robust display)
+                // 1. Fetch user info for Navbar
                 const user = await API.users.getById(userId);
-                const displayName = ((user && (user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user && (user.username || user.email))) || 'Manager';
-                const roleText = (user && (user.roleName || user.role || user.department)) || '';
+                const displayName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = roleText;
+                document.getElementById('user-role-dept').innerText = user.roleName || 'Team Manager';
 
-                // 2. ดึงข้อมูลการลาทั้งหมดของผู้ใช้คนนี้
-                allLeaves = await API.leaves.getAll(userId);
+                // 2. Fetch all leave requests (Team View for Manager)
+                // Note: Manager uses API.leaves.getAll() without userId to see the whole list,
+                // matching the HR "All Requests" behavior requested by the user.
+                allLeaves = await API.leaves.getAll(); 
                 
-                // อัปเดตหัวข้อจำนวนรายการ
-                document.getElementById('request-title').innerText = `My Leave Request (${allLeaves.length})`;
-
-                // 3. แสดงผลรายการลงในหน้าเว็บ
-                renderRequests(allLeaves);
+                const pending = allLeaves.filter(l => l.status.toLowerCase() === 'pending');
+                const approved = allLeaves.filter(l => l.status.toLowerCase() === 'approved');
+                
+                document.getElementById('pending-count').innerText = `(${pending.length})`;
+                document.getElementById('approved-count').innerText = `(${approved.length})`;
+                
+                renderSection('pending-list', pending, true);
+                renderSection('approved-list', approved, false);
 
             } catch (error) {
-                UI.showToast('ดึงข้อมูลผิดพลาด: ' + error.message, 'error');
+                if (typeof UI !== 'undefined' && UI.showToast) {
+                    UI.showToast('Error fetching data: ' + error.message, 'error');
+                }
             }
         }
 
-        function renderRequests(leaves) {
-            const listContainer = document.getElementById('request-list');
-            const currentName = document.getElementById('user-name').innerText;
-
-            if (!leaves || leaves.length === 0) {
-                listContainer.innerHTML = '<p class="col-span-full text-center text-gray-400 py-10">ไม่พบประวัติการลา</p>';
+        function renderSection(containerId, requests, isPending) {
+            const container = document.getElementById(containerId);
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center bg-white rounded-[2rem] border border-dashed border-gray-200">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
+                        <p class="text-gray-400 font-medium">No ${isPending ? 'pending' : 'approved'} requests found.</p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
-            listContainer.innerHTML = leaves.map(req => {
-                const s = (req.status || '').toString().toLowerCase();
-                let borderClass = 'border-gray-100';
-                if (s === 'approved' || s === 'approve') borderClass = 'border-green-200';
-                else if (s === 'rejected' || s === 'reject') borderClass = 'border-red-200';
-                else if (s === 'pending') borderClass = 'border-yellow-200';
+            container.innerHTML = requests.map(req => {
+                const name = req.employeeName || (req.employee && `${req.employee.firstName} ${req.employee.lastName}`) || req.username || 'Employee';
+                const type = req.leaveTypeName || req.type || 'Leave Request';
+                
+                // Color mapping for leave types
+                const typeColors = {
+                    'Annual Leave': 'text-blue-600',
+                    'Sick Leave': 'text-red-500',
+                    'Personal Leave': 'text-purple-500',
+                    'Ordination Leave': 'text-amber-500',
+                    'Unpaid Leave': 'text-gray-500'
+                };
+                const typeColor = typeColors[type] || 'text-blue-500';
 
-                const lid = req.id || req.leaveId || req._id || '';
-                const typeLabel = req.leaveTypeName || req.type || 'Leave Request';
-                const days = req.totalDays || LeaveRequest.calculateDays(req.startDate, req.endDate) || 0;
-                const approverComment = req.comment || req.approverComment || req.approverRemarks || '';
+                // Action buttons for pending section
+                const actionButtons = isPending ? `
+                    <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-50 mt-4">
+                        <button onclick="handleDecision('${req.id}', 'Rejected')" 
+                                class="py-2.5 px-4 rounded-xl border border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
+                            <i data-lucide="x" class="w-4 h-4"></i> Reject
+                        </button>
+                        <button onclick="handleDecision('${req.id}', 'Approved')" 
+                                class="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm">
+                            <i data-lucide="check" class="w-4 h-4"></i> Approve
+                        </button>
+                    </div>
+                ` : '';
+
+                // Attachment button
+                const hasAttachments = (req.attachments && req.attachments.length) || (req.files && req.files.length) || req.attachmentUrl;
+                const attachmentButton = `
+                    <button onclick="openAttachmentViewerById('${req.id}')" 
+                            class="w-full mt-3 py-2 text-xs font-bold text-gray-400 hover:text-blue-600 transition flex items-center justify-center gap-2 bg-gray-50/50 rounded-lg border border-transparent hover:border-blue-100 hover:bg-blue-50/30">
+                        <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> View Attachment
+                    </button>
+                `;
 
                 return `
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border ${borderClass} hover:shadow-md transition-all relative overflow-hidden group">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h4 class="font-bold text-lg text-gray-800">${currentName}</h4>
-                            <p class="text-sm font-medium text-blue-500">${typeLabel}</p>
+                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex flex-col relative overflow-hidden group">
+                        <!-- Status Badge -->
+                        <div class="absolute top-6 right-6">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPending ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}">
+                                ${req.status}
+                            </span>
                         </div>
-                        ${UI.getStatusBadge(req.status)}
-                    </div>
 
-                    <div class="space-y-3 text-sm text-gray-500">
-                        <p class="flex items-center space-x-2 text-gray-600 bg-gray-50 p-2 rounded-lg">
-                            <i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i>
-                            <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
-                        </p>
-                        <p class="flex items-center space-x-2 px-2">
-                            <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
-                            <span>${days} days</span>
-                        </p>
-                        <div class="pt-3 border-t border-dashed mt-3">
-                            <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Reason</p>
-                            <p class="text-gray-700 italic leading-relaxed">"${req.reason || 'ไม่ระบุเหตุผล'}"</p>
+                        <div class="mb-5">
+                            <h4 class="font-bold text-xl text-gray-800 mb-1">${name}</h4>
+                            <p class="text-sm font-bold ${typeColor}">${type}</p>
                         </div>
-                        ${approverComment ? `
-                        <div class="pt-3 bg-orange-50 p-3 rounded-xl border border-orange-100 mt-2">
-                            <p class="text-xs text-orange-400 uppercase font-bold tracking-wider mb-1">Approver Comment</p>
-                            <p class="text-orange-700 text-xs">${approverComment}</p>
-                        </div>
-                        ` : ''}
 
-                        <div class="pt-3 mt-3">
-                            ${(() => {
-                                const has = hasAttachmentsPlaceholder(req);
-                                return `<button data-leave-id="${lid}" onclick="openAttachmentViewerById('${lid}')" class="px-3 py-2 ${has ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-50 text-gray-400 cursor-default'} rounded-lg text-sm transition">View Attachments</button>`;
-                            })()}
+                        <div class="space-y-3 mb-5 flex-1">
+                            <div class="flex items-center text-gray-500 text-sm gap-3 font-medium">
+                                <div class="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                </div>
+                                <span>${UI.formatDate(req.startDate)} - ${UI.formatDate(req.endDate)}</span>
+                            </div>
+                            <div class="flex items-center text-gray-500 text-sm gap-3 font-medium">
+                                <div class="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                </div>
+                                <span>${LeaveRequest.calculateDays(req.startDate, req.endDate)} day(s)</span>
+                            </div>
+                            
+                            <div class="mt-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50 min-h-[60px]">
+                                <p class="text-xs text-gray-400 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                    <i data-lucide="message-square" class="w-3 h-3"></i> Reason
+                                </p>
+                                <p class="text-gray-600 text-sm leading-relaxed line-clamp-2 italic">
+                                    ${req.reason || 'No reason provided.'}
+                                </p>
+                            </div>
+
+                            ${req.comment ? `
+                            <div class="mt-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                <p class="text-[10px] text-blue-400 font-bold uppercase mb-0.5">Approver Comment</p>
+                                <p class="text-blue-700 text-xs italic">${req.comment}</p>
+                            </div>
+                            ` : ''}
                         </div>
+
+                        ${attachmentButton}
+                        ${actionButtons}
                     </div>
-                </div>
-            `;
+                `;
             }).join('');
-
-            function hasAttachmentsPlaceholder(r) {
-                if (!r) return false;
-                if (Array.isArray(r.attachments) && r.attachments.length) return true;
-                if (Array.isArray(r.files) && r.files.length) return true;
-                if (r.attachmentUrls && r.attachmentUrls.length) return true;
-                if (r.fileUrl || r.attachmentUrl) return true;
-                return false;
-            }
-
-            lucide.createIcons();
+            
+            if (window.lucide) lucide.createIcons();
         }
 
-        // Open viewer by id (use allLeaves lookup)
+        async function handleDecision(id, decision) {
+            try {
+                const managerId = localStorage.getItem('userId'); 
+                const payload = {
+                    approverId: managerId,
+                    comment: decision === 'Approved' ? "Approved by Manager" : "Rejected by Manager"
+                };
+
+                if (decision === 'Approved') {
+                    await API.leaves.approve(id, payload); 
+                } else {
+                    const rejectReason = prompt("ระบุเหตุผลการปฏิเสธ:");
+                    if (rejectReason === null) return;
+                    payload.comment = rejectReason;
+                    await API.leaves.reject(id, payload); 
+                }
+                
+                if (typeof UI !== 'undefined' && UI.showToast) {
+                    UI.showToast(`Action successful: ${decision}`, 'success');
+                }
+                initMyRequests(); 
+            } catch (error) {
+                if (typeof UI !== 'undefined' && UI.showToast) {
+                    UI.showToast('Failed to handle decision: ' + error.message, 'error');
+                }
+            }
+        }
+
         function openAttachmentViewerById(id) {
-            const req = allLeaves.find(l => (l.id === id || l.leaveId === id || l._id === id));
-            if (!req) return UI.showToast('ไม่พบไฟล์แนบ', 'error');
+            const req = allLeaves.find(r => r.id === id);
+            if (!req) return;
             openAttachmentViewer(req);
         }
 
-    async function openAttachmentViewer(req) {
+        async function openAttachmentViewer(req) {
             const list = document.getElementById('attachment-list');
             list.innerHTML = '';
 
-            // try to extract urls
-            const urls = [];
-            if (Array.isArray(req.attachments)) {
-                req.attachments.forEach(a => {
-                    if (typeof a === 'string') urls.push(a);
-                    else if (a.url) urls.push(a.url);
-                    else if (a.fileUrl) urls.push(a.fileUrl);
+            try {
+                let urls = [];
+                if (Array.isArray(req.attachments)) urls = req.attachments.map(a => typeof a === 'object' ? a.url || a.filePath : a);
+                else if (Array.isArray(req.files)) urls = req.files.map(f => f.url || f.filePath);
+                
+                if (!urls.length && req.id) {
+                    // Try backend listing
+                    const remote = await API.leaves.getAttachments(req.id);
+                    if (Array.isArray(remote)) {
+                        urls = remote.map(r => r.filePath || r.fileUrl || r.url);
+                    }
+                }
+
+                // Add single value fields
+                if (req.attachmentUrl) urls.push(req.attachmentUrl);
+                if (req.fileUrl) urls.push(req.fileUrl);
+
+                // Normalize and filter
+                const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/+$/, '') : '';
+                const normalized = [...new Set(urls.filter(Boolean))].map(u => {
+                    if (/^https?:\/\//i.test(u) || /^data:/i.test(u) || /^blob:/i.test(u)) return u;
+                    return base ? `${base}/${u.replace(/^\/+/, '')}` : u;
                 });
-            }
-            if (Array.isArray(req.files)) {
-                req.files.forEach(f => { if (f.url) urls.push(f.url); });
-            }
-            if (req.attachmentUrls) urls.push(...(req.attachmentUrls || []));
-            if (req.fileUrl) urls.push(req.fileUrl);
-            if (req.attachmentUrl) urls.push(req.attachmentUrl);
 
-            // Remove duplicates (will normalize later)
-            let uniq = [...new Set(urls)].filter(Boolean);
-
-            async function tryFetchAttachmentsFallback() {
-                const attempts = [];
-                const id = req.id || req.leaveId || req._id || '';
-                if (!id) return [];
-                const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl : '';
-                attempts.push(`${base}/api/LeaveRequests/${id}/attachments`);
-                attempts.push(`${base}/api/Attachments?leaveRequestId=${id}`);
-                attempts.push(`${base}/api/LeaveAttachments?leaveRequestId=${id}`);
-
-                const token = localStorage.getItem('token');
-
-                for (const url of attempts) {
-                    try {
-                        const headers = {};
-                        if (token) headers['Authorization'] = `Bearer ${token}`;
-                        const res = await fetch(url, { method: 'GET', headers });
-                        if (!res || !res.ok) continue;
-
-                        const ct = res.headers.get('content-type') || '';
-                        if (ct.includes('application/json')) {
-                            const data = await res.json();
-                            // try to extract file urls from JSON
-                            const found = [];
-                            if (Array.isArray(data)) {
-                                data.forEach(item => {
-                                    if (!item) return;
-                                    if (typeof item === 'string') found.push(item);
-                                    else if (item.url) found.push(item.url);
-                                    else if (item.fileUrl) found.push(item.fileUrl);
-                                    else if (item.path) found.push((base || '') + item.path);
-                                    else if (item.fileName) found.push((base || '') + '/uploads/' + item.fileName);
-                                });
-                            } else if (data.url) found.push(data.url);
-                            if (found.length) return found;
-                        } else {
-                            // binary/octet-stream or image -> convert to blob URL
-                            const blob = await res.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            return [blobUrl];
+                if (normalized.length === 0) {
+                    list.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">No attachments found.</div>';
+                } else {
+                    list.innerHTML = normalized.map(u => {
+                        const isImage = /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i.test(u);
+                        if (isImage) {
+                            return `<div class="p-2 bg-gray-50 rounded-xl flex items-center justify-center"><a href="${u}" target="_blank"><img src="${u}" class="max-h-40 object-contain rounded-lg shadow-sm" alt="attachment"></a></div>`;
                         }
-                    } catch (e) {
-                        console.debug && console.debug('attachment fetch attempt failed', url, e && e.message);
-                        continue;
-                    }
+                        return `<div class="p-4 bg-gray-50 rounded-xl flex items-center justify-center"><a href="${u}" target="_blank" class="text-blue-600 font-bold underline text-sm">Open Document</a></div>`;
+                    }).join('');
                 }
-                return [];
+
+                document.getElementById('attachmentViewer').classList.remove('hidden');
+            } catch (e) {
+                console.error('Attachment viewer error', e);
+                if (typeof UI !== 'undefined' && UI.showToast) UI.showToast('Failed to load attachments', 'error');
             }
-            // If no direct URLs found in the request object, try API endpoint(s)
-            if (uniq.length === 0) {
-                // 1) Try documented API helper if available
-                try {
-                    if (API && API.leaves && API.leaves.getAttachments) {
-                        console.debug && console.debug('Calling API.leaves.getAttachments for', req.id || req.leaveId || req._id);
-                        const attachments = await API.leaves.getAttachments(req.id || req.leaveId || req._id);
-                        console.debug && console.debug('API.leaves.getAttachments response:', attachments);
-                        const arr = Array.isArray(attachments) ? attachments : (attachments && attachments.data) ? attachments.data : [];
-                        arr.forEach(a => {
-                            if (!a) return;
-                            if (typeof a === 'string') uniq.push(a);
-                            else if (a.url) uniq.push(a.url);
-                            else if (a.fileUrl) uniq.push(a.fileUrl);
-                            else if (a.filePath) uniq.push(a.filePath);
-                            else if (a.path) uniq.push(a.path);
-                            else if (a.downloadUrl) uniq.push(a.downloadUrl);
-                            else if (a.name && a.id) {
-                                const base = (typeof API !== 'undefined' && API.baseUrl) ? API.baseUrl.replace(/\/$/, '') : '';
-                                if (base) uniq.push(base + `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments/${a.id}`);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.debug && console.debug('API.leaves.getAttachments failed', e && e.message);
-                }
-
-                // 2) If still empty, try common fallback endpoints (may return JSON or blobs)
-                if (uniq.length === 0) {
-                    const fetched = await tryFetchAttachmentsFallback();
-                    if (fetched && fetched.length) uniq.push(...fetched);
-                }
-            }
-
-            // Normalize relative URLs and remove duplicates
-            const normalize = u => {
-                if (!u) return null;
-                if (/^https?:\/\//i.test(u) || /^data:/i.test(u) || u.startsWith('blob:')) return u;
-                if (typeof API !== 'undefined' && API.baseUrl) {
-                    const base = API.baseUrl.replace(/\/$/, '');
-                    return base + '/' + String(u).replace(/^\//, '');
-                }
-                return u;
-            };
-
-            uniq = [...new Set(uniq.map(normalize).filter(Boolean))];
-
-            if (uniq.length === 0) {
-                const fallback = (typeof API !== 'undefined' && API.baseUrl) ? `${API.baseUrl.replace(/\/$/, '')}/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments` : `/api/LeaveRequests/${req.id || req.leaveId || req._id}/attachments`;
-                list.innerHTML = `<div class="col-span-full text-center py-8">No direct attachment URLs available. <a href="${fallback}" target="_blank" class="text-blue-600 underline">Open attachments endpoint</a></div>`;
-            } else {
-                list.innerHTML = uniq.map(u => {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(u) || /^data:image\//i.test(u) || /^blob:/i.test(u);
-                    if (isImage) {
-                        return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" rel="noopener"><img src="${u}" class="max-h-40 object-contain" alt="attachment"></a></div>`;
-                    }
-                    return `<div class="p-2 bg-gray-50 rounded-lg flex items-center justify-center"><a href="${u}" target="_blank" rel="noopener" class="text-blue-600 underline">Open file</a></div>`;
-                }).join('');
-            }
-
-            document.getElementById('attachmentViewer').classList.remove('hidden');
-            lucide.createIcons();
         }
 
         function closeAttachmentViewer() {
             document.getElementById('attachmentViewer').classList.add('hidden');
         }
-
-        // ฟังก์ชัน Filter ตามสถานะ
-        function filterStatus(status) {
-            if (status === 'All Status') {
-                renderRequests(allLeaves);
-            } else {
-                const filtered = allLeaves.filter(l => l.status.toLowerCase() === status.toLowerCase());
-                renderRequests(filtered);
-            }
-        }
-
-        document.getElementById('statusFilter').addEventListener('change', (e) => filterStatus(e.target.value));
 
         window.onload = initMyRequests;
 </script>

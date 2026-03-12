@@ -31,8 +31,8 @@ const API = {
         try {
             const response = await fetch(url, config);
             
-            // หาก Server ตอบกลับมาว่า 401 ให้เด้งกลับไปหน้า Login 
-            if (response.status === 401) {
+            // หาก Server ตอบกลับมาว่า 401 ให้เด้งกลับไปหน้า Login (ยกเว้นหน้า Login เอง)
+            if (response.status === 401 && !endpoint.includes('/auth/login')) {
                 localStorage.clear();
                 window.location.href = '../../index.html';
                 return;
@@ -59,6 +59,21 @@ const API = {
         } catch (error) {
             console.error('API Error:', error);
             throw error;
+        }
+    },
+
+    auth: {
+        async login(credentials) {
+            return API.request('/api/Auth/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials)
+            });
+        },
+        async register(registerData) {
+            return API.request('/api/Auth/register', {
+                method: 'POST',
+                body: JSON.stringify(registerData)
+            });
         }
     },
 
@@ -92,6 +107,68 @@ const API = {
             return API.request(`/api/Users/${id}`, {
                 method: 'DELETE'
             });
+        }
+    },
+
+    // ============================================
+    // Employee Endpoints (salary and department mapping)
+    // ============================================
+    employees: {
+        async getAll() {
+            return API.request('/api/Employees');
+        },
+
+        async getById(id) {
+            return API.request(`/api/Employees/${id}`);
+        },
+
+        async getByUserId(userId) {
+            return API.request(`/api/Employees/user/${userId}`);
+        },
+
+        async create(employeeData) {
+            return API.request('/api/Employees', {
+                method: 'POST',
+                body: JSON.stringify(employeeData)
+            });
+        },
+
+        async update(id, employeeData) {
+            return API.request(`/api/Employees/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(employeeData)
+            });
+        }
+    },
+
+    // ============================================
+    // Leave Balances Endpoints 
+    // ============================================
+    leaveBalances: {
+        async getAll() {
+            return API.request('/api/LeaveBalances');
+        },
+        
+        async getByEmployeeId(employeeId) {
+            return API.request(`/api/LeaveBalances/employee/${employeeId}`);
+        },
+
+        async getMine() {
+            return API.request('/api/LeaveBalances/mine');
+        },
+
+        async create(balanceData) {
+            return API.request('/api/LeaveBalances', {
+                method: 'POST',
+                body: JSON.stringify(balanceData)
+            });
+        },
+
+        async initialize(employeeId, year = null) {
+            const endpoint = year 
+                ? `/api/LeaveBalances/initialize/${employeeId}?year=${year}` 
+                : `/api/LeaveBalances/initialize/${employeeId}`;
+            return API.request(endpoint, { method: 'POST' });
         }
     },
 
@@ -161,14 +238,30 @@ const API = {
             return API.request(`/api/Attendance/today/${employeeId}`);
         },
 
-        async getHistory(employeeId) {
-            return API.request(`/api/Attendance/history/${employeeId}`);
+        async getHistory(employeeId, startDate = null, endDate = null) {
+            let url = `/api/Attendance/history/${employeeId}`;
+            const params = [];
+            if (startDate) params.push(`startDate=${startDate}`);
+            if (endDate) params.push(`endDate=${endDate}`);
+            if (params.length) url += `?${params.join('&')}`;
+            return API.request(url);
+        },
+
+        async getAll(date = null) {
+            const url = date ? `/api/Attendance/all?date=${date}` : '/api/Attendance/all';
+            return API.request(url);
         }
     },
 
     references: {
         async getLeaveTypes() {
             return API.request('/api/LeaveTypes'); 
+        },
+        async getDepartments() {
+            return API.request('/api/Departments');
+        },
+        async getRoles() {
+            return API.request('/api/Roles');
         }
     },
 

@@ -22,16 +22,38 @@ class ManagerAttendanceManager {
             // Set user profile Info in Navbar
             const currentUser = await API.users.getById(userId);
             if (currentUser) {
-                const displayName = ((currentUser.firstName || currentUser.lastName)) ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : currentUser.username || 'Manager';
+                const displayName = (currentUser.firstName && currentUser.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : (currentUser.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
                 document.getElementById('user-role-dept').innerText = `${currentUser.roleName || 'Manager'} - ${currentUser.department || 'All'}`;
             }
 
-            // Fetch users
-            this.employees = await API.users.getAll();
+            // 1. Fetch real attendance records for today (or all)
+            // Using API.attendance.getAll() which was confirmed via Swagger screenshots
+            this.records = await API.attendance.getAll();
             
-            // Generate mock records based on current date
-            this.generateMockRecords();
+            // 2. Process records to match the internal structure used by the table/summary
+            this.records = this.records.map(rec => {
+                const checkInDate = rec.checkInTime ? new Date(rec.checkInTime) : null;
+                const checkOutDate = rec.checkOutTime ? new Date(rec.checkOutTime) : null;
+                const attendanceDate = rec.attendanceDate ? new Date(rec.attendanceDate) : (checkInDate || new Date());
+
+                return {
+                    id: rec.attendanceID || rec.id,
+                    name: rec.employeeName || 'Unknown Employee',
+                    employeeId: rec.employeeID || 'N/A',
+                    initials: this.getInitials({ firstName: rec.employeeName.split(' ')[0], lastName: rec.employeeName.split(' ')[1] || '' }),
+                    dateText: attendanceDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: attendanceDate,
+                    checkIn: checkInDate ? checkInDate.toLocaleTimeString('en-GB') : '-',
+                    checkOut: checkOutDate ? checkOutDate.toLocaleTimeString('en-GB') : '-',
+                    workHours: this.calculateWorkHours(checkInDate, checkOutDate),
+                    status: rec.status || 'Present',
+                    notes: rec.notes || '-'
+                };
+            });
+
+            // Fetch employees for summary calculation (Total count)
+            this.employees = await API.employees.getAll();
 
             this.filteredRecords = [...this.records];
             this.updateSummary();
@@ -46,89 +68,17 @@ class ManagerAttendanceManager {
         }
     }
 
-    generateMockRecords() {
-        // Generate records for today and a few days ago for realism
-        const today = new Date();
-        const dates = [
-            today,
-            new Date(today.getTime() - (86400000 * 1)),
-            new Date(today.getTime() - (86400000 * 2)),
-            new Date(today.getTime() - (86400000 * 3))
-        ];
+    calculateWorkHours(checkIn, checkOut) {
+        if (!checkIn || !checkOut) return '-';
+        const diff = (checkOut - checkIn) / (1000 * 60 * 60); // Hours
+        return diff > 0 ? `${diff.toFixed(2)}h` : '-';
+    }
 
-        let generated = [];
-
-        this.employees.forEach((user, index) => {
-            const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown Employee';
-            const employeeId = `EMP${String(user.id).padStart(3, '0')}`;
-            const initials = this.getInitials(user);
-
-            // Give each user 1-4 records
-            const numRecords = (index % 3) + 2; 
-
-            for(let i=0; i<numRecords; i++) {
-                const dateObj = dates[i % dates.length];
-                const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                
-                // Deterministic variability based on user ID and loop index
-                const hash = user.id * 7 + i * 13;
-                let status = 'Present';
-                let checkIn = '09:00:00';
-                let checkOut = '18:00:00';
-                let notes = '-';
-                let workHours = '9.00h';
-
-                if (hash % 7 === 0) {
-                    status = 'Late';
-                    checkIn = '09:15:00';
-                    workHours = '8.75h';
-                    notes = 'Traffic delay';
-                } else if (hash % 11 === 0) {
-                    status = 'Late';
-                    checkIn = '09:45:00';
-                    workHours = '8.25h';
-                    notes = 'Doctor appointment';
-                } else if (hash % 19 === 0) {
-                    status = 'Absent';
-                    checkIn = '-';
-                    checkOut = '-';
-                    workHours = '-';
-                    notes = 'Sick leave';
-                } else if (hash % 5 === 0) {
-                    checkIn = '08:50:00';
-                    checkOut = '18:15:00';
-                    workHours = '9.41h';
-                } else if (i === 0 && hash % 3 === 0) {
-                    // Still working today
-                    checkOut = '-';
-                    workHours = '-';
-                }
-
-                generated.push({
-                    id: `${user.id}-${i}`,
-                    name,
-                    employeeId,
-                    initials,
-                    dateText: dateStr,
-                    rawDate: dateObj,
-                    checkIn,
-                    checkOut,
-                    workHours,
-                    status,
-                    notes
-                });
-            }
-        });
-
-        // Sort by Date (newest first), then by name
-        generated.sort((a, b) => {
-            if (b.rawDate.getTime() !== a.rawDate.getTime()) {
-                return b.rawDate.getTime() - a.rawDate.getTime();
-            }
-            return a.name.localeCompare(b.name);
-        });
-
-        this.records = generated;
+    getInitials(user) {
+        const name = user.firstName || user.username || 'U';
+        const last = user.lastName || '';
+        if (name && last) return `${name.charAt(0)}${last.charAt(0)}`.toUpperCase();
+        return name.substring(0, 2).toUpperCase();
     }
 
     getInitials(user) {

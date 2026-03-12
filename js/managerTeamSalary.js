@@ -27,21 +27,22 @@ class ManagerTeamSalaryManager {
                 document.getElementById('user-role-dept').innerText = `${currentUser.roleName || 'Manager'} - ${currentUser.department || 'All'}`;
             }
 
-            // Fetch all users to display as Team
-            const users = await API.users.getAll();
+            // Fetch all employees from the new endpoint
+            const employeesData = await API.employees.getAll();
             
-            // Map users and generate mock salary data
-            this.employees = users.map(user => {
-                const salary = this.generateMockSalary(user);
+            // Map the real employee data
+            this.employees = employeesData.map(emp => {
+                const id = emp.id || emp.userId;
                 return {
-                    id: user.id,
-                    employeeId: `EMP${String(user.id).padStart(3, '0')}`,
-                    name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown Employee',
-                    initials: this.getInitials(user),
-                    position: user.roleName || 'Employee',
-                    department: user.department || 'General',
-                    baseSalary: salary,
-                    rawUser: user
+                    id: id,
+                    employeeId: emp.employeeNumber || `EMP${String(id).slice(-4).toUpperCase()}`,
+                    userId: emp.userId,
+                    name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.username || 'Unknown Employee',
+                    initials: this.getInitials(emp),
+                    position: emp.position || 'Employee',
+                    department: emp.departmentName || 'General',
+                    baseSalary: emp.salary || 0,
+                    rawUser: emp
                 };
             });
 
@@ -51,46 +52,12 @@ class ManagerTeamSalaryManager {
             this.renderTable();
 
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching employee data:', error);
             const tbody = document.getElementById('salaryTableBody');
             if (tbody) {
                 tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading data: ${error.message}</td></tr>`;
             }
         }
-    }
-
-    generateMockSalary(user) {
-        const baseRates = {
-            'Manager': 80000,
-            'HR Manager': 75000,
-            'Senior': 60000,
-            'Developer': 45000,
-            'Designer': 40000,
-            'QA': 35000,
-            'Admin': 25000
-        };
-
-        let role = user.roleName || '';
-        let matchedRate = 30000;
-
-        for (const [key, rate] of Object.entries(baseRates)) {
-            if (role.toLowerCase().includes(key.toLowerCase())) {
-                matchedRate = rate;
-                break;
-            }
-        }
-
-        let idHash = 0;
-        const idStr = String(user.id);
-        for (let i = 0; i < idStr.length; i++) {
-            idHash = ((idHash << 5) - idHash) + idStr.charCodeAt(i);
-            idHash = idHash & idHash;
-        }
-        
-        const variationPercent = (Math.abs(idHash) % 40) - 15; 
-        let finalSalary = matchedRate * (1 + (variationPercent / 100));
-        
-        return Math.round(finalSalary / 500) * 500;
     }
 
     getInitials(user) {
@@ -104,12 +71,12 @@ class ManagerTeamSalaryManager {
     }
 
     formatCurrency(amount) {
-        return new Intl.NumberFormat('en-US', { 
+        return new Intl.NumberFormat('th-TH', { 
             style: 'currency', 
-            currency: 'USD',
+            currency: 'THB',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        }).format(amount).replace('$', '฿');
+        }).format(amount);
     }
 
     handleSearch(query) {
@@ -222,8 +189,8 @@ class ManagerTeamSalaryManager {
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center">
-                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 rounded-lg text-[11px] font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 tracking-wide">
-                            View Details
+                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-5 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md">
+                            <span>View Details</span>
                         </button>
                     </div>
                 </td>
@@ -238,7 +205,7 @@ class ManagerTeamSalaryManager {
         showingText.innerText = `Showing ${this.filteredEmployees.length} of ${this.employees.length} employees`;
     }
 
-    viewDetails(id) {
+    async viewDetails(id) {
         const emp = this.employees.find(e => e.id == id);
         if (!emp) return;
 
@@ -251,132 +218,188 @@ class ManagerTeamSalaryManager {
         // Populate Contact Info
         document.getElementById('modalDept').innerText = emp.department;
         
-        // Mock email and phone
-        const usernameBase = emp.rawUser?.username || emp.name.split(' ')[0].toLowerCase() || 'employee';
-        document.getElementById('modalEmail').innerText = `${usernameBase}@company.com`.toLowerCase();
-        
-        let hash = 0;
-        const idStr = String(emp.id);
-        for (let i = 0; i < idStr.length; i++) {
-            hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-        }
-        const p1 = Math.abs(hash % 900) + 100;
-        const p2 = Math.abs((hash * 7) % 9000) + 1000;
-        document.getElementById('modalPhone').innerText = `+66 8X-${p1}-${p2}`;
+        // Email and Phone from rawUser or fallbacks (matching HR logic)
+        const userRaw = emp.rawUser || {};
+        document.getElementById('modalEmail').innerText = userRaw.email || (userRaw.username ? `${userRaw.username}@company.com` : 'employee@company.com');
+        document.getElementById('modalPhone').innerText = userRaw.phoneNumber || userRaw.phone || '+66 8X-XXX-XXXX';
 
-        // Render Mock Leave Balances
-        this.renderMockLeaveBalances(emp.id);
+        // Show loading state for balances
+        document.getElementById('modalLeaveBalances').innerHTML = `
+            <div class="col-span-full py-8 text-center text-gray-500">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500"></i>
+                <p>Loading leave balances...</p>
+            </div>
+        `;
+        if (window.lucide) lucide.createIcons();
 
-        // Show Modal
+        // Show Modal immediately 
         const modal = document.getElementById('employeeModal');
         modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        document.body.style.overflow = 'hidden'; 
+
+        try {
+            // HYBRID + DASHBOARD LOGIC (Synced with HR View)
+            const targetId = emp.userId || emp.id;
+            let quotas = [];
+            let leaves = [];
+            
+            const results = await Promise.allSettled([
+                API.leaveBalances.getByEmployeeId(targetId),
+                API.leaves.getAll(targetId)
+            ]);
+
+            if (results[0].status === 'fulfilled') quotas = results[0].value;
+            if (results[1].status === 'fulfilled') leaves = results[1].value;
+
+            const consolidatedBalances = this.calculateDashboardStyleBalances(leaves, quotas);
+            this.renderRealLeaveBalances(consolidatedBalances);
+
+        } catch (error) {
+            console.error('Error loading leave balances:', error);
+            document.getElementById('modalLeaveBalances').innerHTML = `
+                <div class="col-span-full py-4 text-center text-red-500 bg-red-50 rounded-lg">
+                    <p class="font-medium text-sm">Failed to load leave balances.</p>
+                </div>
+            `;
+        }
     }
 
     closeModal() {
         const modal = document.getElementById('employeeModal');
-        modal.classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
         document.body.style.overflow = '';
     }
 
-    renderMockLeaveBalances(userId) {
-        // Deterministic mock generation
-        let hash = 0;
-        const idStr = String(userId);
-        for (let i = 0; i < idStr.length; i++) {
-            hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-        }
-        hash = Math.abs(hash);
-
-        const leaves = [
-            {
-                name: 'Annual Leave',
-                icon: 'u', // Umbrella icon approx (umbrella is lucide standard, fallback to umbrella)
-                lucide: 'umbrella',
-                total: 7,
-                used: (hash % 5),
-                colors: { bg: 'bg-blue-50', text: 'text-blue-600', fill: 'bg-blue-600', ring: 'border-blue-100' }
-            },
-            {
-                name: 'Sick Leave',
-                icon: 'heart',
-                lucide: 'heart-pulse',
-                total: 30,
-                used: (hash % 10) + 1,
-                colors: { bg: 'bg-red-50', text: 'text-red-500', fill: 'bg-red-600', ring: 'border-red-100' }
-            },
-            {
-                name: 'Personal Leave',
-                icon: 'user',
-                lucide: 'user',
-                total: 3,
-                used: (hash % 3),
-                colors: { bg: 'bg-purple-50', text: 'text-purple-500', fill: 'bg-purple-600', ring: 'border-purple-100' }
-            },
-            {
-                name: 'Unpaid Leave',
-                icon: 'dollar-sign',
-                lucide: 'dollar-sign',
-                total: 30,
-                used: 0,
-                colors: { bg: 'bg-gray-50', text: 'text-gray-500', fill: 'bg-gray-400', ring: 'border-gray-200' },
-                hideProgress: true
-            },
-            {
-                name: 'Ordination Leave',
-                icon: 'star',
-                lucide: 'sparkles',
-                total: 15,
-                used: (hash % 15 === 0) ? 15 : 0, // Rare
-                colors: { bg: 'bg-amber-50', text: 'text-amber-500', fill: 'bg-amber-500', ring: 'border-amber-100' }
-            }
+    calculateDashboardStyleBalances(leaves, quotas = null) {
+        // Default Entitlements (Matching Global Sync: Sick 30, Unpaid 365)
+        const types = [
+            { key: 'Annual Leave', idKey: 'annual', total: 6 },
+            { key: 'Sick Leave', idKey: 'sick', total: 30 },
+            { key: 'Personal Leave', idKey: 'personal', total: 3 },
+            { key: 'Ordination Leave', idKey: 'ordination', total: 15 },
+            { key: 'Unpaid Leave', idKey: 'unpaid', total: 365 }
         ];
 
+        const normalize = s => (s || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+
+        const usedByKey = {};
+        (leaves || []).forEach(l => {
+            if ((l.status || '').toString().toLowerCase() !== 'approved') return;
+            
+            let days = 1;
+            if (l.startDate && l.endDate) {
+                const s = new Date(l.startDate);
+                const e = new Date(l.endDate);
+                days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+            }
+            
+            const candidates = [l.leaveTypeName, l.leaveType, l.type, l.leaveTypeCode, l.leaveTypeId, l.leaveTypeKey, l.name, l.code];
+            candidates.forEach(c => {
+                if (!c) return;
+                const k = normalize(c);
+                if (!k) return;
+                usedByKey[k] = (usedByKey[k] || 0) + days;
+            });
+        });
+
+        const quotaMap = {};
+        if (Array.isArray(quotas)) {
+            quotas.forEach(q => {
+                if (q.leaveTypeName) quotaMap[normalize(q.leaveTypeName)] = q.totalDays;
+            });
+        }
+
+        const getUsedForType = (t) => {
+            const wantKeys = [normalize(t.key)];
+            if (t.idKey) wantKeys.push(normalize(t.idKey));
+            const tokens = (t.key || '').toString().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+            tokens.forEach(tok => wantKeys.push(tok));
+
+            for (const wk of wantKeys) {
+                if (usedByKey[wk]) return usedByKey[wk];
+            }
+
+            let sum = 0;
+            Object.keys(usedByKey).forEach(k => {
+                for (const wk of wantKeys) {
+                    if (k.includes(wk)) {
+                        sum += usedByKey[k];
+                        break;
+                    }
+                }
+            });
+            return sum;
+        };
+
+        return types.map(t => {
+            const used = getUsedForType(t);
+            const nKey = normalize(t.key);
+            let total = quotaMap[nKey] || t.total;
+            
+            // Force Sick and Unpaid Leave
+            if (nKey.includes('sick')) total = 30;
+            if (nKey.includes('unpaid')) total = 365;
+
+            return {
+                leaveTypeName: t.key,
+                totalDays: total,
+                usedDays: used,
+                remainingDays: Math.max(0, total - used)
+            };
+        });
+    }
+
+    renderRealLeaveBalances(balancesData) {
         const container = document.getElementById('modalLeaveBalances');
         
-        container.innerHTML = leaves.map(leave => {
-            const left = leave.total - leave.used;
-            const percentage = (leave.used / leave.total) * 100;
-            
-            const progressHtml = leave.hideProgress ? '' : `
-                <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3">
-                    <div class="${leave.colors.fill} h-1.5 rounded-full" style="width: ${percentage}%"></div>
-                </div>
-            `;
-            
-            const textHtml = leave.hideProgress 
-                ? `<div class="text-[11px] text-gray-500 font-medium">${leave.total} days available</div>`
-                : `<div class="text-[11px] text-gray-500 font-medium">${left} of ${leave.total} days left</div>`;
-                
-            const valueHtml = leave.hideProgress
-                ? `<div class="text-xl font-bold ${leave.colors.text} leading-none">${leave.total}</div>`
-                : `<div class="text-xl font-bold ${leave.colors.text} leading-none">${left}</div>`;
+        if (!balancesData || balancesData.length === 0) {
+            container.innerHTML = `<div class="col-span-full py-6 text-center text-gray-400"><p class="text-sm">No leave balances found.</p></div>`;
+            return;
+        }
+
+        const styleConfig = {
+            'Annual Leave': { icon: 'umbrella', colors: { bg: 'bg-blue-50', text: 'text-blue-600', fill: 'bg-blue-600', ring: 'border-blue-100' } },
+            'Sick Leave': { icon: 'heart', colors: { bg: 'bg-red-50', text: 'text-red-500', fill: 'bg-red-600', ring: 'border-red-100' } },
+            'Personal Leave': { icon: 'user', colors: { bg: 'bg-purple-50', text: 'text-purple-500', fill: 'bg-purple-600', ring: 'border-purple-100' } },
+            'Ordination Leave': { icon: 'sparkles', colors: { bg: 'bg-amber-50', text: 'text-amber-500', fill: 'bg-amber-500', ring: 'border-amber-100' } },
+            'Unpaid Leave': { icon: 'dollar-sign', colors: { bg: 'bg-gray-50', text: 'text-gray-500', fill: 'bg-gray-400', ring: 'border-gray-200' } },
+            'default': { icon: 'calendar', colors: { bg: 'bg-gray-50', text: 'text-gray-600', fill: 'bg-gray-500', ring: 'border-gray-200' } }
+        };
+
+        container.innerHTML = `<div class="space-y-4">` + balancesData.map(balance => {
+            const config = styleConfig[balance.leaveTypeName] || styleConfig['default'];
+            const left = balance.remainingDays;
+            const used = balance.usedDays;
+            const total = balance.totalDays;
+            const percentage = total > 0 ? (used / total) * 100 : 0;
 
             return `
-                <div class="p-4 rounded-xl border ${leave.colors.ring} bg-white shadow-sm flex flex-col justify-center">
-                    <div class="flex justify-between items-center w-full">
+                <div class="p-4 rounded-xl border ${config.colors.ring} ${config.colors.bg} shadow-sm group hover:shadow-md transition-all duration-300">
+                    <div class="flex justify-between items-center relative z-10">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl ${leave.colors.bg} ${leave.colors.text} flex items-center justify-center">
-                                <i data-lucide="${leave.lucide}" class="w-5 h-5"></i>
+                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center ${config.colors.text}">
+                                <i data-lucide="${config.icon}" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <h5 class="font-bold text-gray-800 text-sm">${leave.name}</h5>
-                                ${textHtml}
+                                <h5 class="font-bold text-gray-800 text-sm">${balance.leaveTypeName}</h5>
+                                <p class="text-[11px] text-gray-500 font-medium">
+                                    <span class="font-bold text-gray-700">${used}</span> of ${total} days used
+                                </p>
                             </div>
                         </div>
-                        <div class="text-right flex flex-col items-end">
-                            ${valueHtml}
-                            <div class="text-[10px] text-gray-400 font-medium mt-0.5">days</div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold ${config.colors.text}">${left}</div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">left</div>
                         </div>
                     </div>
-                    ${progressHtml}
+                    <div class="mt-3 w-full bg-white/60 rounded-full h-1.5 px-0.5 py-0.5">
+                        <div class="${config.colors.fill} h-1 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                    </div>
                 </div>
             `;
-        }).join('');
+        }).join('') + `</div>`;
 
-        if (window.lucide) {
-            lucide.createIcons();
-        }
+        if (window.lucide) lucide.createIcons();
     }
 }
 
