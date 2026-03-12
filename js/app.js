@@ -19,9 +19,7 @@ const CONFIG = {
 const LEAVE_RULES = {
     annual: { key: 'annual', advanceDays: 7, maxDays: 6, requireAttachment: false, label: 'ลาพักผ่อน' },
     sick: { key: 'sick', advanceDays: 0, maxDays: 30, requireAttachmentAfter: 3, label: 'ลาป่วย' },
-    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' },
-    ordination: { key: 'ordination', advanceDays: 30, maxDays: 15, requireAttachment: true, label: 'ลาบวช' },
-    unpaid: { key: 'unpaid', advanceDays: 3, maxDays: 30, requireAttachment: true, label: 'ลางานไม่รับเงิน' }
+    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' }
 };
 
 // ============================================
@@ -90,9 +88,16 @@ const UI = {
             const select = document.getElementById(selectElementId);
             if (!select) return;
 
+            // Filter out types we want to remove
+            const filteredTypes = types.filter(t => {
+                const name = (t.typeName || '').toLowerCase();
+                return !name.includes('ordination') && !name.includes('บวช') && 
+                       !name.includes('unpaid') && !name.includes('ไม่รับเงิน');
+            });
+
             // วาดตัวเลือกใหม่ โดยเก็บ "ค่าเริ่มต้น" ไว้
             select.innerHTML = '<option value="">Select Leave Type</option>' + 
-                types.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
+                filteredTypes.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
         } catch (error) {
             console.error('Failed to fill leave types:', error);
             this.showToast('ไม่สามารถโหลดประเภทการลาได้', 'error');
@@ -214,16 +219,6 @@ const LeaveRequest = {
         // Use 0 as default tenure if employee data is missing (safer)
         const tenureYears = employee ? this.calculateTenure(employee.createdAt || employee.joiningDate) : 0; 
 
-        // 1. Check Tenure Requirements
-        // Ordination Leave requires 1 year
-        if (rules.key === 'ordination' && tenureYears < 1) {
-            return {
-                valid: false,
-                message: `การลาบวชต้องมีอายุงานอย่างน้อย 1 ปี (อายุงานปัจจุบันของคุณคือ ${tenureYears} ปี)`
-            };
-        }
-
-        // Annual Leave requires at least 1 year
         if (rules.key === 'annual') {
             if (tenureYears < 1) {
                 return {
@@ -241,14 +236,6 @@ const LeaveRequest = {
                 else if (tenureYears >= 4) rules.maxDays = 7;
                 else rules.maxDays = 6;
             }
-        }
-
-        // Unpaid Leave requires 1 year
-        if (rules.key === 'unpaid' && tenureYears < 1) {
-            return {
-                valid: false,
-                message: `การลางานไม่รับเงินต้องมีอายุงานอย่างน้อย 1 ปี (อายุงานปัจจุบันของคุณคือ ${tenureYears} ปี)`
-            };
         }
 
         // 2. Check advance notice

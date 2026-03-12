@@ -138,6 +138,7 @@
 
         function renderSection(containerId, requests, isPending) {
             const container = document.getElementById(containerId);
+            const currentUserId = localStorage.getItem('userId');
             
             if (requests.length === 0) {
                 container.innerHTML = `
@@ -158,25 +159,38 @@
                 const typeColors = {
                     'Annual Leave': 'text-blue-600',
                     'Sick Leave': 'text-red-500',
-                    'Personal Leave': 'text-purple-500',
-                    'Ordination Leave': 'text-amber-500',
-                    'Unpaid Leave': 'text-gray-500'
+                    'Personal Leave': 'text-purple-500'
                 };
                 const typeColor = typeColors[type] || 'text-blue-500';
 
-                // Action buttons for pending section
-                const actionButtons = isPending ? `
-                    <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-50 mt-4">
-                        <button onclick="handleDecision('${req.id}', 'Rejected')" 
-                                class="py-2.5 px-4 rounded-xl border border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
-                            <i data-lucide="x" class="w-4 h-4"></i> Reject
-                        </button>
-                        <button onclick="handleDecision('${req.id}', 'Approved')" 
-                                class="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm">
-                            <i data-lucide="check" class="w-4 h-4"></i> Approve
-                        </button>
-                    </div>
-                ` : '';
+                // Action buttons for pending section - Block self approval
+                const isSelfRequest = (req.employeeId || req.userId || req.employee?.id) == currentUserId;
+                
+                let actionButtons = '';
+                if (isPending) {
+                    if (isSelfRequest) {
+                        actionButtons = `
+                            <div class="pt-4 border-t border-gray-50 mt-4 text-center">
+                                <span class="text-xs font-bold text-amber-500 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 flex items-center justify-center gap-1.5">
+                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Cannot process your own request
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        actionButtons = `
+                            <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-50 mt-4">
+                                <button onclick="handleDecision('${req.id}', 'Rejected')" 
+                                        class="py-2.5 px-4 rounded-xl border border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
+                                    <i data-lucide="x" class="w-4 h-4"></i> Reject
+                                </button>
+                                <button onclick="handleDecision('${req.id}', 'Approved')" 
+                                        class="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
 
                 // Attachment button
                 const hasAttachments = (req.attachments && req.attachments.length) || (req.files && req.files.length) || req.attachmentUrl;
@@ -244,7 +258,13 @@
         async function handleDecision(id, decision) {
             try {
                 const managerId = localStorage.getItem('userId'); 
-                const payload = {
+                
+                // Safety check for self-approval
+                const req = allLeaves.find(l => l.id === id);
+                if (req && (req.employeeId || req.userId || req.employee?.id) == managerId) {
+                    UI.showToast('คุณไม่สามารถจัดการคำขอลาของตนเองได้', 'warning');
+                    return;
+                }                const payload = {
                     approverId: managerId,
                     comment: decision === 'Approved' ? "Approved by Manager" : "Rejected by Manager"
                 };

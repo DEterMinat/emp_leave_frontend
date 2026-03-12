@@ -106,9 +106,7 @@ function renderLeaveBalances(leaves, entitlements = null) {
     const types = [
         { key: 'Annual Leave', idKey: 'annual', total: 6, icon: 'sun', color: 'from-blue-400 to-blue-300 text-white' },
         { key: 'Sick Leave', idKey: 'sick', total: 30, icon: 'heart', color: 'from-pink-300 to-pink-200 text-white' },
-        { key: 'Personal Leave', idKey: 'personal', total: 3, icon: 'user', color: 'from-purple-300 to-purple-200 text-white' },
-        { key: 'Ordination Leave', idKey: 'ordination', total: 15, icon: 'crown', color: 'from-teal-300 to-teal-200 text-white' },
-        { key: 'Unpaid Leave', idKey: 'unpaid', total: 365, icon: 'dollar-sign', color: 'from-green-300 to-green-200 text-white' }
+        { key: 'Personal Leave', idKey: 'personal', total: 3, icon: 'user', color: 'from-purple-300 to-purple-200 text-white' }
     ];
 
     // Build a normalized map of used days keyed by multiple plausible identifiers

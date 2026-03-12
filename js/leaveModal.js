@@ -21,8 +21,6 @@
                             <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
                             <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
                             <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
-                            <option value="69783baa111b105aeac97905">Ordination Leave (ลาบวช)</option>
-                            <option value="69783bc5111b105aeac97906">Unpaid Leave (ลางานไม่รับเงิน)</option>
                         </select>
                     </div>
 
@@ -415,18 +413,6 @@
                     <li>ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน</li>
                     <li>ต้องได้รับการอนุมัติก่อนหยุดงาน</li>
                 `;
-            } else if (textContent.includes('ordination') || textContent.includes('บวช')) {
-                rulesList.innerHTML = `
-                    <li>ลาได้ไม่เกิน 15 วัน</li>
-                    <li>ต้องทำงานมาแล้วอย่างน้อย 1 ปี</li>
-                    <li>ลาได้ 1 ครั้งตลอดอายุการทำงาน</li>
-                `;
-            } else if (textContent.includes('unpaid') || textContent.includes('ไม่รับเงิน')) {
-                rulesList.innerHTML = `
-                    <li>ลาได้ 30 วัน/ปี</li>
-                    <li>ไม่ได้รับค่าจ้างในวันที่ลา</li>
-                    <li>ต้องได้รับการอนุมัติกรณีพิเศษจาก HR</li>
-                `;
             } else {
                 rulesList.innerHTML = `<li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>`;
             }
@@ -479,7 +465,6 @@
                 if (name.includes('sick')) leaveTypeMap[id] = 'sick';
                 else if (name.includes('annual')) leaveTypeMap[id] = 'annual';
                 else if (name.includes('personal') || name.includes('ลากิจ')) leaveTypeMap[id] = 'personal';
-                else if (name.includes('ordination') || name.includes('ลาบวช')) leaveTypeMap[id] = 'ordination';
                 else leaveTypeMap[id] = 'other';
             });
         }
