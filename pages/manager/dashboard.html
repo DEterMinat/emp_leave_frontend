@@ -183,6 +183,7 @@
 
                 try {
                     const user = await API.users.getById(userId);
+                    window.currentUserProfile = user; // Store for quota calculations
                     // Build a safe display name: prefer first + last, then username, then email, finally a fallback
                     const displayName = ((user && (user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user && (user.username || user.email)) ) || 'Manager';
                     const roleText = (user && (user.roleName || user.role || user.department)) || '';
@@ -287,14 +288,24 @@
                     let matchedKey = null;
                     for (const c of candidates) { if (usedMap[c]) { used = usedMap[c]; matchedKey = c; break; } }
                     if (!used) {
-                        const want = norm(t.key);
+                        const want = norm(t.key).replace('leave', '').trim();
                         for (const k of Object.keys(usedMap)) {
                             const kn = k.toString().toLowerCase();
-                            if (kn.includes(want) || want.includes(kn) || kn.includes(norm(t.idKey))) { used = usedMap[k]; matchedKey = k; break; }
+                            if (want && (kn.includes(want) || want.includes(kn))) { used = usedMap[k]; matchedKey = k; break; }
+                            if (kn.includes(norm(t.idKey))) { used = usedMap[k]; matchedKey = k; break; }
                         }
                     }
                     console.debug && console.debug('manager leave balance mapping', t.key, { candidates, matchedKey, used });
-                    const total = (entitlements && (entitlements[t.idKey] || entitlements[t.key] || entitlements[t.key.toLowerCase()])) || t.total;
+                    let total = (entitlements && (entitlements[t.idKey] || entitlements[t.key] || entitlements[t.key.toLowerCase()])) || t.total;
+                    
+                    // ADJUST ANNUAL QUOTA BASED ON TENURE + CARRY-OVER
+                    if (t.idKey === 'annual') {
+                        const profile = window.currentUserProfile; 
+                        if (profile && (profile.createdAt || profile.joiningDate)) {
+                            total = LeaveRequest.getAnnualQuotaWithCarryOver(profile.createdAt || profile.joiningDate, leaves);
+                        }
+                    }
+                    
                     const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
                     return `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border hover:shadow-md transition">

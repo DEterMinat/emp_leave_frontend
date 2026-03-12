@@ -17,10 +17,11 @@ const CONFIG = {
 // Leave Rules (Business Logic)
 // ============================================
 const LEAVE_RULES = {
-    annual: { advanceDays: 7, maxDays: 6, requireAttachment: false },
-    sick: { advanceDays: 0, maxDays: 30, requireAttachmentAfter: 3 },
-    personal: { advanceDays: 3, maxDays: 3, requireAttachment: true },
-    ordination: { advanceDays: 30, maxDays: 15, requireAttachment: true }
+    annual: { key: 'annual', advanceDays: 7, maxDays: 6, requireAttachment: false, label: 'ลาพักผ่อน' },
+    sick: { key: 'sick', advanceDays: 0, maxDays: 30, requireAttachmentAfter: 3, label: 'ลาป่วย' },
+    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' },
+    ordination: { key: 'ordination', advanceDays: 30, maxDays: 15, requireAttachment: true, label: 'ลาบวช' },
+    unpaid: { key: 'unpaid', advanceDays: 3, maxDays: 30, requireAttachment: true, label: 'ลางานไม่รับเงิน' }
 };
 
 // ============================================
@@ -116,34 +117,157 @@ const LeaveRequest = {
     },
 
     /**
+     * Calculate tenure in years from a joining date/createdAt
+     */
+    calculateTenure(createdAt) {
+        if (!createdAt) return 0;
+        const joined = new Date(createdAt);
+        const today = new Date();
+        let years = today.getFullYear() - joined.getFullYear();
+        const m = today.getMonth() - joined.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < joined.getDate())) {
+            years--;
+        }
+        return Math.max(0, years);
+    },
+
+    /**
+     * Get dynamic annual quota based on tenure
+     */
+    getAnnualQuota(createdAt) {
+        const tenureYears = this.calculateTenure(createdAt);
+        if (tenureYears < 1) return 0; // New accounts 
+        if (tenureYears >= 7) return 8;
+        if (tenureYears >= 4) return 7;
+        return 6;
+    },
+
+    /**
+     * Get dynamic annual quota with carry-over logic (Max 12 days)
+     */
+    getAnnualQuotaWithCarryOver(createdAt, allLeaves = []) {
+        if (!createdAt) return 0;
+        
+        const joinedDate = new Date(createdAt);
+        const currentYear = new Date().getFullYear();
+        const joiningYear = joinedDate.getFullYear();
+        
+        let carryOver = 0;
+        let totalThisYear = 0;
+
+        // Process year by year from joining to current
+        for (let year = joiningYear; year <= currentYear; year++) {
+            // Calculate tenure for the start of THIS specific year to get base quota
+            // (Actually, tenure usually increases on the anniversary, but we'll use 
+            // the year difference for simplicity as per the 6/7/8 rules)
+            const dateInYear = new Date(year, 11, 31); // End of that year
+            const baseQuota = this.getAnnualQuota(createdAt); 
+            // Wait, the getAnnualQuota(createdAt) calculates tenure based on 'today'.
+            // I need a version that calculates tenure for a SPECIFIC PAST DATE.
+            
+            // Tenure at year Y = Year - Joining Year
+            const tenureInYear = Math.max(0, year - joiningYear);
+            let baseY = 0;
+            if (tenureInYear >= 1) {
+                if (tenureInYear >= 7) baseY = 8;
+                else if (tenureInYear >= 4) baseY = 7;
+                else baseY = 6;
+            }
+
+            // Total available for THIS year
+            totalThisYear = Math.min(12, baseY + carryOver);
+
+            // Subtract approved leaves taken in THIS year
+            const approvedLeavesInYear = allLeaves.filter(l => {
+                const isAnnual = (l.leaveTypeName || l.leaveType || '').toLowerCase().includes('annual');
+                const isApproved = (l.status || '').toLowerCase() === 'approved';
+                const leafYear = new Date(l.startDate).getFullYear();
+                return isAnnual && isApproved && leafYear === year;
+            });
+
+            const usedInYear = approvedLeavesInYear.reduce((sum, l) => {
+                return sum + (this.calculateDays(l.startDate, l.endDate) || 0);
+            }, 0);
+
+            // Carry over for NEXT year
+            carryOver = Math.max(0, totalThisYear - usedInYear);
+        }
+
+        return totalThisYear;
+    },
+
+    /**
      * Validate leave request
      */
-    validate(leaveType, startDate, endDate) {
-        const rules = LEAVE_RULES[leaveType];
-        if (!rules) return { valid: false, message: 'Invalid leave type' };
+    validate(leaveTypeKey, startDate, endDate, employee = null, allLeaves = []) {
+        let rules = { ...LEAVE_RULES[leaveTypeKey] };
+        if (!rules.key) return { valid: true, needsAttachment: false }; 
 
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        
         const leadTime = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
         const days = this.calculateDays(startDate, endDate);
+        
+        // Use 0 as default tenure if employee data is missing (safer)
+        const tenureYears = employee ? this.calculateTenure(employee.createdAt || employee.joiningDate) : 0; 
 
-        // Check advance notice
+        // 1. Check Tenure Requirements
+        // Ordination Leave requires 1 year
+        if (rules.key === 'ordination' && tenureYears < 1) {
+            return {
+                valid: false,
+                message: `การลาบวชต้องมีอายุงานอย่างน้อย 1 ปี (อายุงานปัจจุบันของคุณคือ ${tenureYears} ปี)`
+            };
+        }
+
+        // Annual Leave requires at least 1 year
+        if (rules.key === 'annual') {
+            if (tenureYears < 1) {
+                return {
+                    valid: false,
+                    message: `การลาพักผ่อนต้องมีอายุงานอย่างน้อย 1 ปี (อายุงานปัจจุบันของคุณคือ ${tenureYears} ปี)`
+                };
+            }
+            
+            // USE CARRY-OVER LOGIC (Dynamic Quota)
+            if (employee?.createdAt || employee?.joiningDate) {
+                rules.maxDays = this.getAnnualQuotaWithCarryOver(employee.createdAt || employee.joiningDate, allLeaves);
+            } else {
+                // Fallback to basic tenure tiers if no history provided
+                if (tenureYears >= 7) rules.maxDays = 8;
+                else if (tenureYears >= 4) rules.maxDays = 7;
+                else rules.maxDays = 6;
+            }
+        }
+
+        // Unpaid Leave requires 1 year
+        if (rules.key === 'unpaid' && tenureYears < 1) {
+            return {
+                valid: false,
+                message: `การลางานไม่รับเงินต้องมีอายุงานอย่างน้อย 1 ปี (อายุงานปัจจุบันของคุณคือ ${tenureYears} ปี)`
+            };
+        }
+
+        // 2. Check advance notice
         if (leadTime < rules.advanceDays) {
             return { 
                 valid: false, 
-                message: `ต้องแจ้งล่วงหน้าอย่างน้อย ${rules.advanceDays} วัน` 
+                message: `${rules.label} ต้องแจ้งล่วงหน้าอย่างน้อย ${rules.advanceDays} วัน (เริ่มลาได้ตั้งแต่วันที่ ${UI.formatDate(new Date(today.getTime() + rules.advanceDays * 86400000))})` 
             };
         }
 
-        // Check max days
+        // 3. Check max days
         if (days > rules.maxDays) {
             return { 
                 valid: false, 
-                message: `ลาได้สูงสุด ${rules.maxDays} วัน` 
+                message: `${rules.label} สามารถลาได้สูงสุด ${rules.maxDays} วันสำหรับอายุงานของคุณ (คุณพยายามลา ${days} วัน)` 
             };
         }
 
-        // Check attachment requirement
+        // 4. Check attachment requirement
         const needsAttachment = rules.requireAttachment || 
             (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter);
 

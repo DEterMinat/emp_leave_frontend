@@ -251,7 +251,7 @@ class ManagerTeamSalaryManager {
             if (results[0].status === 'fulfilled') quotas = results[0].value;
             if (results[1].status === 'fulfilled') leaves = results[1].value;
 
-            const consolidatedBalances = this.calculateDashboardStyleBalances(leaves, quotas);
+            const consolidatedBalances = this.calculateDashboardStyleBalances(leaves, quotas, emp.rawUser);
             this.renderRealLeaveBalances(consolidatedBalances);
 
         } catch (error) {
@@ -270,7 +270,7 @@ class ManagerTeamSalaryManager {
         document.body.style.overflow = '';
     }
 
-    calculateDashboardStyleBalances(leaves, quotas = null) {
+    calculateDashboardStyleBalances(leaves, quotas = null, employee = null) {
         // Default Entitlements (Matching Global Sync: Sick 30, Unpaid 365)
         const types = [
             { key: 'Annual Leave', idKey: 'annual', total: 6 },
@@ -290,7 +290,7 @@ class ManagerTeamSalaryManager {
             if (l.startDate && l.endDate) {
                 const s = new Date(l.startDate);
                 const e = new Date(l.endDate);
-                days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+                days = LeaveRequest.calculateDays(l.startDate, l.endDate) || 0;
             }
             
             const candidates = [l.leaveTypeName, l.leaveType, l.type, l.leaveTypeCode, l.leaveTypeId, l.leaveTypeKey, l.name, l.code];
@@ -313,7 +313,9 @@ class ManagerTeamSalaryManager {
             const wantKeys = [normalize(t.key)];
             if (t.idKey) wantKeys.push(normalize(t.idKey));
             const tokens = (t.key || '').toString().toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-            tokens.forEach(tok => wantKeys.push(tok));
+            tokens.forEach(tok => {
+                if (tok !== 'leave') wantKeys.push(tok);
+            });
 
             for (const wk of wantKeys) {
                 if (usedByKey[wk]) return usedByKey[wk];
@@ -336,6 +338,11 @@ class ManagerTeamSalaryManager {
             const nKey = normalize(t.key);
             let total = quotaMap[nKey] || t.total;
             
+            // ADJUST ANNUAL QUOTA BASED ON TENURE + CARRY-OVER
+            if (t.idKey === 'annual' && employee && (employee.createdAt || employee.joiningDate)) {
+                total = LeaveRequest.getAnnualQuotaWithCarryOver(employee.createdAt || employee.joiningDate, leaves);
+            }
+
             // Force Sick and Unpaid Leave
             if (nKey.includes('sick')) total = 30;
             if (nKey.includes('unpaid')) total = 365;

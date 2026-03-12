@@ -192,20 +192,63 @@
         leaveForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const leaveData = {
-                employeeId: localStorage.getItem('userId'),
-                leaveTypeId: document.getElementById('leaveType').value,
-                startDate: new Date(document.getElementById('startDate').value).toISOString(),
-                endDate: new Date(document.getElementById('endDate').value).toISOString(),
-                reason: document.getElementById('description').value
-            };
+            const rawLeaveType = document.getElementById('leaveType').value;
+            const rawStartDate = document.getElementById('startDate').value;
+            const rawEndDate = document.getElementById('endDate').value;
+            const reason = document.getElementById('description').value;
 
-            if (!leaveData.leaveTypeId || !leaveData.startDate || !leaveData.endDate || !leaveData.reason) {
+            if (!rawLeaveType || !rawStartDate || !rawEndDate || !reason) {
                 UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
                 return;
             }
 
             try {
+                // Fetch employee data to get createdAt for tenure validation
+                const userId = localStorage.getItem('userId');
+                let employeeProfile = null;
+                
+                try {
+                    employeeProfile = await API.employees.getByUserId(userId);
+                } catch (empErr) {
+                    console.warn('Cannot fetch employee profile (likely permission/403), trying User endpoint:', empErr);
+                    try {
+                        employeeProfile = await API.users.getById(userId);
+                    } catch (userErr) {
+                        console.error('Failed to fetch profile from all endpoints:', userErr);
+                    }
+                }
+
+                // Fetch all leaves for carry-over logic
+                let allLeaves = [];
+                try {
+                    allLeaves = await API.leaves.getAll(userId);
+                } catch (err) {
+                    console.warn('Failed to fetch historical leaves for carry-over validation:', err);
+                }
+
+                // CENTRALIZED VALIDATION (passing employee and history for carry-over check)
+                const typeKey = leaveTypeMap[rawLeaveType] || 'other';
+                const validation = LeaveRequest.validate(typeKey, rawStartDate, rawEndDate, employeeProfile, allLeaves);
+                
+                if (!validation.valid) {
+                    UI.showToast(validation.message, 'error');
+                    return;
+                }
+                
+                // Check if attachment is required but missing
+                if (validation.needsAttachment && uploadedFiles.length === 0) {
+                    UI.showToast(`การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)`, 'warning');
+                    return;
+                }
+
+                const leaveData = {
+                    employeeId: userId,
+                    leaveTypeId: rawLeaveType,
+                    startDate: new Date(rawStartDate).toISOString(),
+                    endDate: new Date(rawEndDate).toISOString(),
+                    reason: reason
+                };
+
                 let created = null;
 
                 // If there are attachments, prefer the Swagger endpoint that accepts multipart/form-data
@@ -287,7 +330,25 @@
 
         // file handlers
         function handleFiles(files) {
+            const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
+            const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+
             Array.from(files).forEach(file => {
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+                
+                // 1. Check Extension
+                if (!allowedExtensions.includes(fileExtension)) {
+                    UI.showToast(`ไม่อนุญาตไฟล์ประเภทนี้ (${fileExtension}) อนุญาตเฉพาะ PDF, DOC, JPG, PNG`, 'warning');
+                    return;
+                }
+
+                // 2. Check Size
+                if (file.size > maxSizeBytes) {
+                    UI.showToast(`ไฟล์ "${file.name}" ใหญ่เกินไป (ต้องไม่เกิน 10MB)`, 'warning');
+                    return;
+                }
+
                 if (uploadedFiles.some(f => f.name === file.name)) return;
                 uploadedFiles.push(file);
 

@@ -7,7 +7,11 @@ async function initHRDashboard() {
     try {
         // For HR dashboard we will show only the HR user's own data (like employee dashboard)
         const userId = localStorage.getItem('userId');
-        const leaves = userId ? await API.leaves.getAll(userId) : [];
+        const [leaves, user] = await Promise.all([
+            userId ? API.leaves.getAll(userId) : [],
+            userId ? API.users.getById(userId) : null
+        ]);
+        window.currentUserProfile = user; // Store for quota calculations
 
         // update stats from the user's own leaves
         const total = (leaves || []).length;
@@ -145,12 +149,18 @@ function renderLeaveBalances(leaves, entitlements = null) {
 
         // Fallback: if no direct key matched, try substring or contains match on usedMap keys
         if (!used) {
-            const want = norm(t.key);
+            const want = norm(t.key).replace('leave', '').trim();
             for (const k of Object.keys(usedMap)) {
                 try {
                     if (!k) continue;
                     const kn = k.toString().toLowerCase();
-                    if (kn.includes(want) || want.includes(kn) || kn.includes(norm(t.idKey))) {
+                    // Match if want (e.g. 'annual') is found, but avoid generic 'leave' matching
+                    if (want && (kn.includes(want) || want.includes(kn))) {
+                        used = usedMap[k];
+                        matchedKey = k;
+                        break;
+                    }
+                    if (t.idKey && kn.includes(norm(t.idKey))) {
                         used = usedMap[k];
                         matchedKey = k;
                         break;
@@ -162,7 +172,7 @@ function renderLeaveBalances(leaves, entitlements = null) {
         console.debug && console.debug('leave balance mapping', t.key, { candidates, matchedKey, used });
 
         // Resolve total from entitlements if provided (try multiple key shapes)
-        const total = (function() {
+        let total = (function() {
             if (!entitlements) return t.total;
             const tryKeys = [t.idKey, t.key, t.key.toLowerCase(), norm(t.idKey), norm(t.key)];
             for (const k of tryKeys) {
@@ -172,6 +182,14 @@ function renderLeaveBalances(leaves, entitlements = null) {
             }
             return t.total;
         })();
+
+        // ADJUST ANNUAL QUOTA BASED ON TENURE + CARRY-OVER
+        if (t.idKey === 'annual') {
+            const profile = window.currentUserProfile; 
+            if (profile && (profile.createdAt || profile.joiningDate)) {
+                total = LeaveRequest.getAnnualQuotaWithCarryOver(profile.createdAt || profile.joiningDate, leaves);
+            }
+        }
 
         const percent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
         return `
