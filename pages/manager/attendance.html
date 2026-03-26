@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance (Manager) - Leave System</title>
+    <script src="../../js/translations.js"></script>
+    <script src="../../js/i18n.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" />
@@ -18,21 +20,22 @@
                         <i data-lucide="user-check"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold" id="user-name">Attendance</h1>
+                        <h1 class="text-lg font-bold" id="user-name" data-i18n="dash.attendance">Attendance</h1>
                         <p class="text-sm text-gray-500 italic" id="user-role-dept">Manager View</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <div class="lang-switcher-container mr-6 z-50"></div>
                     <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-md shadow-blue-200">
                         <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span class="font-medium text-sm">New Request</span>
+                        <span class="font-medium text-sm" data-i18n="common.newRequest">New Request</span>
                     </button>
                 </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
                 <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                    <span>Dashboard</span>
+                    <span data-i18n="common.dashboard">Dashboard</span>
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
@@ -40,7 +43,7 @@
                 </a>
                 <a href="teams.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-clock" class="w-4 h-4"></i>
-                    <span>Leave History</span>
+                    <span data-i18n="common.leaveHistory">Leave History</span>
                 </a>
                 <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
@@ -48,11 +51,11 @@
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i>
-                    <span>Team Salary</span>
+                    <span data-i18n="nav.teamSalary">Team Salary</span>
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap">
                     <i data-lucide="user-check" class="w-4 h-4"></i>
-                    <span>Attendance</span>
+                    <span data-i18n="dash.attendance">Attendance</span>
                 </a>
             </div>
         </div>

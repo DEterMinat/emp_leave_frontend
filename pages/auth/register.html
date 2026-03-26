@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Internal Registration - Employee Leave System</title>
+    <script src="../../js/translations.js"></script>
+    <script src="../../js/i18n.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../../css/style.css">
@@ -14,6 +16,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
             <div class="flex items-center space-x-4">
+                    <div class="lang-switcher-container mr-4 z-50"></div>
                 <a href="../../index.html" class="p-2 hover:bg-white rounded-xl transition shadow-sm border border-transparent hover:border-gray-100">
                     <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i>
                 </a>
@@ -50,7 +53,7 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-500 mb-2 px-1">Password</label>
+                            <label class="block text-sm font-bold text-gray-500 mb-2 px-1" data-i18n="login.password">Password</label>
                             <div class="relative">
                                 <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
                                 <input type="password" id="password" required placeholder="••••••••"
