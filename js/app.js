@@ -254,9 +254,9 @@ const LeaveRequest = {
             };
         }
 
-        // 4. Check attachment requirement
-        const needsAttachment = rules.requireAttachment || 
-            (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter);
+        // 4. Check attachment requirement (Boolean normalized)
+        const needsAttachment = !!(rules.requireAttachment || 
+            (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter));
 
         return { valid: true, needsAttachment };
     },
@@ -268,8 +268,8 @@ const LeaveRequest = {
         const rules = LEAVE_RULES[leaveType];
         if (!rules) return false;
         
-        return rules.requireAttachment || 
-            (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter);
+        return !!(rules.requireAttachment || 
+            (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter));
     }
 };
 
