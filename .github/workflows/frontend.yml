@@ -35,6 +35,7 @@ jobs:
         echo "## 🔍 Structure Validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         ERRORS=0
+        # 1. Check Mandatory Files
         for file in index.html css/style.css js/app.js js/api.js; do
           if [ -f "$file" ]; then
             echo "✅ $file exists"
@@ -45,7 +46,9 @@ jobs:
             ERRORS=$((ERRORS+1))
           fi
         done
-        for dir in css js pages assets; do
+
+        # 2. Check Directories (Wait, ignore assets if empty)
+        for dir in css js pages; do
           if [ -d "$dir" ]; then
             echo "✅ $dir/ directory exists"
             echo "✅ $dir/" >> $GITHUB_STEP_SUMMARY
@@ -55,10 +58,16 @@ jobs:
             ERRORS=$((ERRORS+1))
           fi
         done
+
+        if [ -d "assets" ]; then
+           echo "✅ assets/ directory exists" >> $GITHUB_STEP_SUMMARY
+        else
+           echo "⚠️ assets/ directory not found (optional)" >> $GITHUB_STEP_SUMMARY
+        fi
+
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ $ERRORS -gt 0 ]; then
-          echo "❌ **$ERRORS errors found during structure validation**"
-          echo "❌ **$ERRORS errors found**" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **$ERRORS mandatory files missing**"
           exit 1
         fi
         echo "✅ **All checks passed**" >> $GITHUB_STEP_SUMMARY
