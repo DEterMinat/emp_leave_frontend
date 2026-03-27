@@ -15,10 +15,6 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-defaults:
-  run:
-    working-directory: emp_leave_frontend
-
 jobs:
   # =============================================
   # Stage 1: Validate Structure
@@ -100,7 +96,7 @@ jobs:
       if: always()
       with:
         name: coverage-report
-        path: emp_leave_frontend/coverage/
+        path: coverage/
         retention-days: 14
 
     - name: 📈 Coverage Summary
@@ -184,7 +180,7 @@ jobs:
     - name: 📤 Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: emp_leave_frontend/_site
+        path: _site
 
     - name: 🌐 Deploy to GitHub Pages
       id: deployment
