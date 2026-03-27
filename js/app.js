@@ -19,7 +19,9 @@ const CONFIG = {
 const LEAVE_RULES = {
     annual: { key: 'annual', advanceDays: 7, maxDays: 6, requireAttachment: false, label: 'ลาพักผ่อน' },
     sick: { key: 'sick', advanceDays: 0, maxDays: 30, requireAttachmentAfter: 3, label: 'ลาป่วย' },
-    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' }
+    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' },
+    ordination: { key: 'ordination', advanceDays: 30, maxDays: 120, requireAttachment: true, label: 'ลาอุปสมบท' },
+    unpaid: { key: 'unpaid', advanceDays: 7, maxDays: 30, requireAttachment: false, label: 'ลางานไม่รับเงิน' }
 };
 
 // ============================================
@@ -88,16 +90,9 @@ const UI = {
             const select = document.getElementById(selectElementId);
             if (!select) return;
 
-            // Filter out types we want to remove
-            const filteredTypes = types.filter(t => {
-                const name = (t.typeName || '').toLowerCase();
-                return !name.includes('ordination') && !name.includes('บวช') && 
-                       !name.includes('unpaid') && !name.includes('ไม่รับเงิน');
-            });
-
             // วาดตัวเลือกใหม่ โดยเก็บ "ค่าเริ่มต้น" ไว้
             select.innerHTML = '<option value="">Select Leave Type</option>' + 
-                filteredTypes.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
+                types.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
         } catch (error) {
             console.error('Failed to fill leave types:', error);
             this.showToast('ไม่สามารถโหลดประเภทการลาได้', 'error');
@@ -237,6 +232,15 @@ const LeaveRequest = {
                 else rules.maxDays = 6;
             }
         }
+        
+        if (rules.key === 'ordination') {
+            if (employee?.gender === 'Female' || employee?.gender === 'หญิง') {
+                return { valid: false, message: 'ลาอุปสมบทสงวนสิทธิ์เฉพาะพนักงานชาย' };
+            }
+            if (tenureYears < 1) {
+                return { valid: false, message: 'การลาอุปสมบทต้องมีอายุงานอย่างน้อย 1 ปี' };
+            }
+        }
 
         // 2. Check advance notice
         if (leadTime < rules.advanceDays) {
@@ -246,7 +250,7 @@ const LeaveRequest = {
             };
         }
 
-        // 3. Check max days
+        // 3. Check max days per request
         if (days > rules.maxDays) {
             return { 
                 valid: false, 
@@ -254,11 +258,45 @@ const LeaveRequest = {
             };
         }
 
-        // 4. Check attachment requirement (Boolean normalized)
+        // 4. Check REMAINING QUOTA — count already used + pending days this year
+        if (allLeaves && allLeaves.length > 0) {
+            const currentYear = new Date(startDate).getFullYear();
+            const usedDays = allLeaves.reduce((sum, l) => {
+                const s = (l.status || '').toLowerCase();
+                // Count Approved and Pending (not Rejected/Cancelled)
+                if (s === 'rejected' || s === 'reject' || s === 'cancelled') return sum;
+                // Match leave type by key
+                const typeName = (l.leaveTypeName || l.leaveType || l.type || '').toLowerCase();
+                const isMatchingType = (() => {
+                    if (rules.key === 'annual')      return typeName.includes('annual') || typeName.includes('พักผ่อน') || typeName.includes('พักร้อน');
+                    if (rules.key === 'sick')        return typeName.includes('sick')   || typeName.includes('ป่วย');
+                    if (rules.key === 'personal')    return typeName.includes('personal') || typeName.includes('กิจ');
+                    if (rules.key === 'ordination')  return typeName.includes('ordination') || typeName.includes('บวช') || typeName.includes('อุปสมบท');
+                    if (rules.key === 'unpaid')      return typeName.includes('unpaid') || typeName.includes('ไม่รับเงิน');
+                    return false;
+                })();
+                if (!isMatchingType) return sum;
+                // Same year only
+                const leaveYear = new Date(l.startDate).getFullYear();
+                if (leaveYear !== currentYear) return sum;
+                return sum + (this.calculateDays(l.startDate, l.endDate) || 0);
+            }, 0);
+
+            const remaining = rules.maxDays - usedDays;
+            if (days > remaining) {
+                return {
+                    valid: false,
+                    message: `${rules.label} สิทธิ์คงเหลือไม่เพียงพอ — ใช้ไปแล้ว ${usedDays} วัน จากสิทธิ์ทั้งหมด ${rules.maxDays} วัน (คงเหลือ ${Math.max(0, remaining)} วัน แต่ขอลา ${days} วัน)`
+                };
+            }
+        }
+
+        // 5. Check attachment requirement (Boolean normalized)
         const needsAttachment = !!(rules.requireAttachment || 
             (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter));
 
         return { valid: true, needsAttachment };
+
     },
 
     /**

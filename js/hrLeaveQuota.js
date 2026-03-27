@@ -12,7 +12,9 @@ class LeaveQuotaManager {
         this.standardQuotas = {
             'Annual Leave': { base: 6, max: 8 }, // Will adjust by tenure
             'Sick Leave': { base: 30 },
-            'Personal Leave': { base: 3 }
+            'Personal Leave': { base: 3 },
+            'Ordination Leave': { base: 120 },
+            'Unpaid Leave': { base: 30 }
         };
     }
 
@@ -80,7 +82,9 @@ class LeaveQuotaManager {
         const quotaMap = {
             'ลาพักร้อน': { used: 0, total: annualTotal },
             'ลาป่วย': { used: 0, total: this.standardQuotas['Sick Leave'].base },
-            'ลากิจ': { used: 0, total: this.standardQuotas['Personal Leave'].base }
+            'ลากิจ': { used: 0, total: this.standardQuotas['Personal Leave'].base },
+            'ลาอุปสมบท': { used: 0, total: this.standardQuotas['Ordination Leave'].base },
+            'UNPAID': { used: 0, total: this.standardQuotas['Unpaid Leave'].base }
         };
 
         // Populate with API data if available
@@ -105,6 +109,8 @@ class LeaveQuotaManager {
             quotaMap['ลาพักร้อน'].used = Math.floor(Math.abs(hash) % (annualTotal + 1));
             quotaMap['ลาป่วย'].used = Math.floor((Math.abs(hash) >> 2) % 15);
             quotaMap['ลากิจ'].used = Math.floor((Math.abs(hash) >> 4) % (this.standardQuotas['Personal Leave'].base + 1));
+            quotaMap['ลาอุปสมบท'].used = 0;
+            quotaMap['UNPAID'].used = 0;
         }
 
         return {
@@ -152,7 +158,7 @@ class LeaveQuotaManager {
         if (this.filteredEmployees.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                         <div class="flex flex-col items-center">
                             <i data-lucide="search-x" class="w-10 h-10 text-gray-300 mb-3"></i>
                             <p>ไม่พบข้อมูลพนักงานที่ค้นหา</p>
@@ -186,6 +192,12 @@ class LeaveQuotaManager {
                     ${this.formatQuota(emp.quotas['ลากิจ'].used, emp.quotas['ลากิจ'].total)}
                 </td>
                 <td class="px-6 py-4 text-center">
+                    ${this.formatQuota(emp.quotas['ลาอุปสมบท'].used, emp.quotas['ลาอุปสมบท'].total)}
+                </td>
+                <td class="px-6 py-4 text-center bg-blue-50/30">
+                    ${this.formatQuota(emp.quotas['UNPAID'].used, emp.quotas['UNPAID'].total)}
+                </td>
+                <td class="px-6 py-4 text-center">
                     <button onclick="quotaManager.editQuota('${emp.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition flex items-center justify-center mx-auto gap-1 text-xs font-bold">
                         <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                         <span>แก้ไข</span>
@@ -216,7 +228,9 @@ class LeaveQuotaManager {
         const configs = [
             { key: 'ลาพักร้อน', title: 'ลาพักผ่อน (Annual Leave)', subtitle: '1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7+ ปี = 8 วัน', color: 'blue' },
             { key: 'ลาป่วย', title: 'ลาป่วย (Sick Leave)', subtitle: 'สูงสุด 30 วัน', color: 'red' },
-            { key: 'ลากิจ', title: 'ลากิจ (Personal Leave)', subtitle: 'สูงสุด 3 วัน', color: 'purple' }
+            { key: 'ลากิจ', title: 'ลากิจ (Personal Leave)', subtitle: 'สูงสุด 3 วัน', color: 'purple' },
+            { key: 'ลาอุปสมบท', title: 'ลาอุปสมบท (Ordination Leave)', subtitle: 'สูงสุด 120 วัน', color: 'orange' },
+            { key: 'UNPAID', title: 'ลางานไม่รับเงิน (Unpaid Leave)', subtitle: 'สูงสุด 30 วัน', color: 'gray' }
         ];
 
         const colorMap = {

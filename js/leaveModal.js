@@ -184,8 +184,22 @@
         const endDate = document.getElementById('endDate');
 
         leaveType.addEventListener('change', () => { checkRules(); });
-        startDate.addEventListener('change', () => { calculateDays(); });
-        endDate.addEventListener('change', () => { calculateDays(); });
+        startDate.addEventListener('change', () => { calculateDays(); validateDateRange(); });
+        endDate.addEventListener('change', () => { calculateDays(); validateDateRange(); });
+
+        function validateDateRange() {
+            const s = document.getElementById('startDate').value;
+            const e = document.getElementById('endDate').value;
+            const endEl = document.getElementById('endDate');
+            if (s && e && new Date(e) < new Date(s)) {
+                endEl.classList.add('border-red-500', 'ring-1', 'ring-red-400');
+                endEl.title = 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น';
+            } else {
+                endEl.classList.remove('border-red-500', 'ring-1', 'ring-red-400');
+                endEl.title = '';
+            }
+        }
+
 
         leaveForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -196,9 +210,41 @@
             const reason = document.getElementById('description').value;
 
             if (!rawLeaveType || !rawStartDate || !rawEndDate || !reason) {
-                UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+                // Highlight missing date fields specifically
+                const startEl = document.getElementById('startDate');
+                const endEl   = document.getElementById('endDate');
+                const highlightClass = ['border-red-500', 'ring-1', 'ring-red-400'];
+
+                if (!rawStartDate) startEl.classList.add(...highlightClass);
+                else               startEl.classList.remove(...highlightClass);
+
+                if (!rawEndDate)   endEl.classList.add(...highlightClass);
+                else               endEl.classList.remove(...highlightClass);
+
+                if (!rawStartDate || !rawEndDate) {
+                    UI.showToast('กรุณาระบุวันที่เริ่มต้นและสิ้นสุด', 'error');
+                } else {
+                    UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+                }
                 return;
             }
+
+            // Clear any previous date highlights
+            ['startDate', 'endDate'].forEach(id => {
+                document.getElementById(id).classList.remove('border-red-500', 'ring-1', 'ring-red-400');
+            });
+
+            // Validate: End Date must not be before Start Date
+            const startDateObj = new Date(rawStartDate);
+            const endDateObj   = new Date(rawEndDate);
+            if (endDateObj < startDateObj) {
+                UI.showToast('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น', 'error');
+                const endEl = document.getElementById('endDate');
+                endEl.classList.add('border-red-500', 'ring-1', 'ring-red-400');
+                endEl.focus();
+                return;
+            }
+
 
             try {
                 // Fetch employee data to get createdAt for tenure validation
@@ -232,12 +278,47 @@
                     UI.showToast(validation.message, 'error');
                     return;
                 }
-                
+
+                // CHECK FOR DATE OVERLAP with existing Pending or Approved leaves
+                const newStart = new Date(rawStartDate);
+                const newEnd   = new Date(rawEndDate);
+                newStart.setHours(0, 0, 0, 0);
+                newEnd.setHours(0, 0, 0, 0);
+
+                const overlapping = allLeaves.filter(l => {
+                    const s = (l.status || '').toLowerCase();
+                    if (s === 'rejected' || s === 'reject' || s === 'cancelled') return false;
+                    const existStart = new Date(l.startDate);
+                    const existEnd   = new Date(l.endDate);
+                    existStart.setHours(0, 0, 0, 0);
+                    existEnd.setHours(0, 0, 0, 0);
+                    // Overlap condition: newStart <= existEnd AND newEnd >= existStart
+                    return newStart <= existEnd && newEnd >= existStart;
+                });
+
+                if (overlapping.length > 0) {
+                    const conflict = overlapping[0];
+                    // Use Gregorian (CE) format to match what the date input shows
+                    const fmtCE = d => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    const cStart  = fmtCE(conflict.startDate);
+                    const cEnd    = fmtCE(conflict.endDate);
+                    const cType   = conflict.leaveTypeName || conflict.type || 'การลา';
+                    const cStatus = conflict.status || '';
+                    UI.showToast(
+                        `วันที่ทับซ้อนกับ ${cType} (${cStart} – ${cEnd}) ที่มีสถานะ "${cStatus}" อยู่แล้ว`,
+                        'error'
+                    );
+                    document.getElementById('startDate').classList.add('border-red-500', 'ring-1', 'ring-red-400');
+                    document.getElementById('endDate').classList.add('border-red-500', 'ring-1', 'ring-red-400');
+                    return;
+                }
+
                 // Check if attachment is required but missing
                 if (validation.needsAttachment && uploadedFiles.length === 0) {
                     UI.showToast(`การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)`, 'warning');
                     return;
                 }
+
 
                 const leaveData = {
                     employeeId: userId,
@@ -326,28 +407,84 @@
             throw err;
         }
 
-        // file handlers
-        function handleFiles(files) {
+        // Known file signatures (magic bytes) for allowed types
+        const FILE_SIGNATURES = {
+            '.pdf':  { bytes: [0x25, 0x50, 0x44, 0x46], label: 'PDF' },           // %PDF
+            '.jpg':  { bytes: [0xFF, 0xD8, 0xFF],        label: 'JPEG' },          // JPEG SOI
+            '.jpeg': { bytes: [0xFF, 0xD8, 0xFF],        label: 'JPEG' },
+            '.png':  { bytes: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], label: 'PNG' },
+            '.doc':  { bytes: [0xD0, 0xCF, 0x11, 0xE0],  label: 'DOC' },           // OLE2 Compound
+            '.docx': { bytes: [0x50, 0x4B, 0x03, 0x04],  label: 'DOCX (ZIP)' },   // ZIP (Office Open XML)
+        };
+
+        // Read first N bytes of a File and return as Uint8Array
+        function readFileHeader(file, numBytes) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(new Uint8Array(e.target.result));
+                reader.onerror  = reject;
+                reader.readAsArrayBuffer(file.slice(0, numBytes));
+            });
+        }
+
+        // Compare file header against known magic bytes
+        function matchesSignature(header, sig) {
+            return sig.every((byte, i) => header[i] === byte);
+        }
+
+        // file handlers — async to support magic-bytes check
+        async function handleFiles(files) {
             const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
             const maxSizeBytes = 10 * 1024 * 1024; // 10MB
 
-            Array.from(files).forEach(file => {
-                const fileName = file.name.toLowerCase();
-                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
-                
-                // 1. Check Extension
-                if (!allowedExtensions.includes(fileExtension)) {
-                    UI.showToast(`ไม่อนุญาตไฟล์ประเภทนี้ (${fileExtension}) อนุญาตเฉพาะ PDF, DOC, JPG, PNG`, 'warning');
-                    return;
+            for (const file of Array.from(files)) {
+                const fileName  = file.name.toLowerCase();
+
+                // 0. Double-extension / path traversal guard
+                const dotCount = (fileName.match(/\./g) || []).length;
+                if (dotCount > 1 || fileName.includes('/') || fileName.includes('\\')) {
+                    UI.showToast(`⚠ ไฟล์ "${file.name}" มีชื่อที่น่าสงสัย (double extension หรือ path)`, 'error');
+                    continue;
                 }
 
-                // 2. Check Size
+                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+
+                // 1. Extension whitelist
+                if (!allowedExtensions.includes(fileExtension)) {
+                    UI.showToast(`ไม่อนุญาตไฟล์ประเภทนี้ (${fileExtension}) — อนุญาตเฉพาะ PDF, DOC, JPG, PNG`, 'warning');
+                    continue;
+                }
+
+                // 2. Size limit
                 if (file.size > maxSizeBytes) {
                     UI.showToast(`ไฟล์ "${file.name}" ใหญ่เกินไป (ต้องไม่เกิน 10MB)`, 'warning');
-                    return;
+                    continue;
                 }
 
-                if (uploadedFiles.some(f => f.name === file.name)) return;
+                // 3. Magic Bytes (File Signature) — read actual file header
+                try {
+                    const sigDef = FILE_SIGNATURES[fileExtension];
+                    if (sigDef) {
+                        const header = await readFileHeader(file, 8);
+                        if (!matchesSignature(header, sigDef.bytes)) {
+                            UI.showToast(
+                                `🚫 ตรวจพบความผิดปกติ: ไฟล์ "${file.name}" มี file signature ไม่ตรงกับนามสกุล .${fileExtension.slice(1).toUpperCase()} — บล็อกการอัปโหลด`,
+                                'error'
+                            );
+                            console.warn(`[Security] File signature mismatch for "${file.name}":`, 
+                                Array.from(header.slice(0, 8)).map(b => '0x' + b.toString(16).padStart(2,'0').toUpperCase()).join(' '),
+                                'Expected signature for', sigDef.label
+                            );
+                            continue;
+                        }
+                    }
+                } catch (sigErr) {
+                    console.warn('[Security] Could not read file signature for', file.name, sigErr);
+                    // Non-fatal: allow file if we can't read bytes (e.g., empty file edge case)
+                }
+
+                // 4. Duplicate check
+                if (uploadedFiles.some(f => f.name === file.name)) continue;
                 uploadedFiles.push(file);
 
                 const fileItem = document.createElement('div');
@@ -365,13 +502,13 @@
                     </button>
                 `;
 
-                // attach remove handler
                 fileItem.querySelector('.file-remove-btn').addEventListener('click', () => removeFile(file.name));
-
                 fileList.appendChild(fileItem);
-            });
+            }
             lucide.createIcons();
         }
+
+
 
         function removeFile(fileName) {
             uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
@@ -413,6 +550,19 @@
                     <li>ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน</li>
                     <li>ต้องได้รับการอนุมัติก่อนหยุดงาน</li>
                 `;
+            } else if (textContent.includes('ordination') || textContent.includes('บวช')) {
+                rulesList.innerHTML = `
+                    <li>เฉพาะพนักงานชายที่มีอายุงาน 1 ปีขึ้นไป</li>
+                    <li>ลาได้สูงสุด 120 วัน</li>
+                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน</li>
+                    <li>โปรดแนบเอกสารที่เกี่ยวข้อง</li>
+                `;
+            } else if (textContent.includes('unpaid') || textContent.includes('ไม่รับเงิน')) {
+                rulesList.innerHTML = `
+                    <li>การลางานโดยไม่รับค่าจ้าง</li>
+                    <li>ลาได้สูงสุด 30 วัน/ปี</li>
+                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน</li>
+                `;
             } else {
                 rulesList.innerHTML = `<li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>`;
             }
@@ -449,6 +599,10 @@
                     alert("ลากิจส่วนตัวต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน ");
                 } else if (key === 'annual' && leadTime < 7) {
                     alert("ลาพักผ่อนต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน ");
+                } else if (key === 'ordination' && leadTime < 30) {
+                    alert("ลาอุปสมบทต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน ");
+                } else if (key === 'unpaid' && leadTime < 7) {
+                    alert("ลางานไม่รับเงินต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน ");
                 }
             }
         }
@@ -465,6 +619,8 @@
                 if (name.includes('sick')) leaveTypeMap[id] = 'sick';
                 else if (name.includes('annual')) leaveTypeMap[id] = 'annual';
                 else if (name.includes('personal') || name.includes('ลากิจ')) leaveTypeMap[id] = 'personal';
+                else if (name.includes('ordination') || name.includes('บวช')) leaveTypeMap[id] = 'ordination';
+                else if (name.includes('unpaid') || name.includes('ไม่รับเงิน')) leaveTypeMap[id] = 'unpaid';
                 else leaveTypeMap[id] = 'other';
             });
         }
