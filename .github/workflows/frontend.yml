@@ -27,6 +27,9 @@ jobs:
     - name: 🚀 Checkout Code
       uses: actions/checkout@v4
 
+    - name: 🔍 Debug File Structure
+      run: ls -R
+
     - name: 📁 Check Core Files Exist
       run: |
         echo "## 🔍 Structure Validation" >> $GITHUB_STEP_SUMMARY
@@ -34,22 +37,27 @@ jobs:
         ERRORS=0
         for file in index.html css/style.css js/app.js js/api.js; do
           if [ -f "$file" ]; then
+            echo "✅ $file exists"
             echo "✅ $file" >> $GITHUB_STEP_SUMMARY
           else
+            echo "❌ $file is MISSING!"
             echo "❌ $file is MISSING!" >> $GITHUB_STEP_SUMMARY
             ERRORS=$((ERRORS+1))
           fi
         done
         for dir in css js pages assets; do
           if [ -d "$dir" ]; then
+            echo "✅ $dir/ directory exists"
             echo "✅ $dir/" >> $GITHUB_STEP_SUMMARY
           else
+            echo "❌ $dir/ directory is MISSING!"
             echo "❌ $dir/ directory is MISSING!" >> $GITHUB_STEP_SUMMARY
             ERRORS=$((ERRORS+1))
           fi
         done
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ $ERRORS -gt 0 ]; then
+          echo "❌ **$ERRORS errors found during structure validation**"
           echo "❌ **$ERRORS errors found**" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
