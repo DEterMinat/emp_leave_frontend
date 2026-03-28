@@ -303,7 +303,7 @@ class ManagerLeaveHistory {
             const approver = rec.approverName || (rec.status.toLowerCase() === 'approved' ? 'System/Admin' : '-');
 
             html += `
-            <tr class="hover:bg-gray-50/80 transition border-b border-gray-100 bg-white">
+            <tr class="hover:bg-gray-50/80 transition border-b border-gray-100 bg-white group cursor-pointer" onclick="LeaveDetailsModal.view('${rec.id}')">
                 <td class="px-6 py-4">
                     <div class="flex items-center space-x-3">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${this.getBgColorClass(uProps.initials)} shadow-sm">
