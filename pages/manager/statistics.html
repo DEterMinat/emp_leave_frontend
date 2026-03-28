@@ -62,38 +62,38 @@
         </div>
 
         <!-- Time Period -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center transition-all duration-300">
             <div class="flex items-center text-gray-700 font-bold text-sm">
                 <i data-lucide="calendar" class="w-5 h-5 mr-2 text-gray-400"></i>
-                Time Period
+                <span id="periodLabel">Time Period: Month</span>
             </div>
-            <div class="flex bg-gray-50 p-1 rounded-lg border border-gray-100 space-x-1">
-                <button class="px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 transition">Day</button>
-                <button class="px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 transition">Week</button>
-                <button class="px-4 py-1.5 rounded-md text-xs font-bold bg-blue-600 text-white shadow-sm transition">Month</button>
-                <button class="px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 transition">Year</button>
+            <div class="flex bg-gray-50 p-1 rounded-lg border border-gray-100 space-x-1" id="periodContainer">
+                <button data-period="Day" class="period-btn px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-white transition whitespace-nowrap">Day</button>
+                <button data-period="Week" class="period-btn px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-white transition whitespace-nowrap">Week</button>
+                <button data-period="Month" class="period-btn active-period px-4 py-1.5 rounded-md text-xs font-bold bg-blue-600 text-white shadow-sm transition whitespace-nowrap">Month</button>
+                <button data-period="Year" class="period-btn px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-white transition whitespace-nowrap">Year</button>
             </div>
         </div>
 
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-lg">
             <h3 class="text-sm font-bold mb-1 text-gray-800">Leave Type Count</h3>
-            <p class="text-[11px] text-gray-400 mb-6">Total number of leave requests by type</p>
+            <p class="text-[11px] text-gray-400 mb-6" id="typeChartDesc">Total number of leave requests by type</p>
             <div class="h-[300px]">
                 <canvas id="leaveTypeChart"></canvas>
             </div>
         </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 class="text-sm font-bold mb-1 text-gray-800">Monthly Leave Count</h3>
-            <p class="text-[11px] text-gray-400 mb-6">Number of employees on leave each month</p>
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-lg">
+            <h3 class="text-sm font-bold mb-1 text-gray-800" id="dayChartTitle">Monthly Leave Count</h3>
+            <p class="text-[11px] text-gray-400 mb-6" id="dayChartDesc">Number of employees on leave each month</p>
             <div class="h-[300px]">
                 <canvas id="leaveDayChart"></canvas>
             </div>
         </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 transition-all hover:shadow-lg">
             <h3 class="text-sm font-bold mb-1 text-gray-800">Request Status Distribution</h3>
-            <p class="text-[11px] text-gray-400 mb-6">Breakdown of approved and rejected requests</p>
+            <p class="text-[11px] text-gray-400 mb-6" id="decisionChartDesc">Breakdown of approved and rejected requests</p>
             <div class="h-[300px] flex justify-center">
                 <canvas id="decisionChart"></canvas>
             </div>
@@ -105,6 +105,14 @@
     <script src="../../js/api.js"></script>
     <script>
         lucide.createIcons();
+
+        let allLeaves = [];
+        let filteredLeaves = [];
+        let currentPeriod = 'Month';
+        
+        let typeChartInstance = null;
+        let dayChartInstance = null;
+        let decisionChartInstance = null;
 
         async function initStatistics() {
             const userId = localStorage.getItem('userId');
@@ -118,194 +126,213 @@
                 document.querySelector('.text-sm.text-gray-500').innerText = 'Manager';
 
                 // 2. ดึงข้อมูลใบลาทั้งหมดของทีม
-                const allLeaves = await API.leaves.getAll();
+                allLeaves = await API.leaves.getAll();
+                if (!Array.isArray(allLeaves)) allLeaves = [];
                 
-                // 3. ประมวลผลข้อมูลสำหรับกราฟ (ส่ง Array เปล่าถ้าไม่มีข้อมูล)
-                const leavesToProcess = Array.isArray(allLeaves) ? allLeaves : [];
-                updateTypeChart(leavesToProcess);
-                updateDayChart(leavesToProcess);
-                updateDecisionChart(leavesToProcess);
+                // 3. ตั้งค่า Event Listeners สำหรับปุ่ม
+                setupPeriodListeners();
+
+                // 4. เริ่มต้นแสดงผล (Default: Month)
+                updateView('Month');
 
             } catch (error) {
-                // If API fails, show empty charts instead of breaking UI in production
                 console.error(error);
-                updateTypeChart([]);
-                updateDayChart([]);
-                updateDecisionChart([]);
+                updateView('Month');
                 if (typeof UI !== 'undefined') UI.showToast('Could not load statistics data.', 'error');
             }
         }
 
-        // --- ฟังก์ชันอัปเดตกราฟแต่ละประเภท ---
-        // Colors mapping:
-        // Annual: Blue #3b82f6
-        // Sick: Red #ef4444
-        // Personal: Purple #8b5cf6
-        // Unpaid: Gray #9ca3af
+        function setupPeriodListeners() {
+            const container = document.getElementById('periodContainer');
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('.period-btn');
+                if (!btn) return;
+
+                // Update UI state
+                document.querySelectorAll('.period-btn').forEach(b => {
+                    b.className = "period-btn px-4 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-white transition whitespace-nowrap";
+                });
+                btn.className = "period-btn active-period px-4 py-1.5 rounded-md text-xs font-bold bg-blue-600 text-white shadow-sm transition whitespace-nowrap";
+
+                const period = btn.getAttribute('data-period');
+                currentPeriod = period;
+                document.getElementById('periodLabel').innerText = `Time Period: ${period}`;
+                
+                updateView(period);
+            });
+        }
+
+        function updateView(period) {
+            filteredLeaves = filterLeavesByPeriod(allLeaves, period);
+            
+            // UI Descriptions updates
+            const ranges = { 'Day': 'last 24 hours', 'Week': 'last 7 days', 'Month': 'last 30 days', 'Year': 'last 365 days' };
+            const range = ranges[period];
+            document.getElementById('typeChartDesc').innerText = `Total number of leave requests in ${range}`;
+            document.getElementById('decisionChartDesc').innerText = `Breakdown of requests in ${range}`;
+            
+            const dayTitles = { 'Day': 'Hourly Activity', 'Week': 'Daily Activity', 'Month': 'Weekly Activity', 'Year': 'Monthly Activity' };
+            const dayDescs = { 'Day': 'Activity in last 24 hours', 'Week': 'Leave count over last 7 days', 'Month': 'Trend over last 30 days', 'Year': 'Trend over last 12 months' };
+            document.getElementById('dayChartTitle').innerText = dayTitles[period];
+            document.getElementById('dayChartDesc').innerText = dayDescs[period];
+
+            updateTypeChart(filteredLeaves);
+            updateDayChart(filteredLeaves, period);
+            updateDecisionChart(filteredLeaves);
+        }
+
+        function filterLeavesByPeriod(leaves, period) {
+            const now = new Date();
+            let thresholdDate = new Date();
+
+            if (period === 'Day') thresholdDate.setHours(now.getHours() - 24);
+            else if (period === 'Week') thresholdDate.setDate(now.getDate() - 7);
+            else if (period === 'Month') thresholdDate.setDate(now.getDate() - 30);
+            else if (period === 'Year') thresholdDate.setFullYear(now.getFullYear() - 1);
+
+            return leaves.filter(l => {
+                const start = new Date(l.startDate || l.createdAt);
+                // We keep threshold to show trend, but don't strictly cap at 'now' 
+                // to allow seeing future/upcoming planned leaves in analytics.
+                return start >= thresholdDate;
+            });
+        }
 
         function updateTypeChart(leaves) {
             const counts = { 'Annual Leave': 0, 'Sick Leave': 0, 'Personal Leave': 0, 'Unpaid Leave': 0 };
             
-            // Generate some mock data if empty for visual fullness, matching screenshot scenario
-            if (leaves.length === 0) {
-                counts['Annual Leave'] = 2;
-                counts['Sick Leave'] = 1;
-                counts['Personal Leave'] = 1;
-                counts['Unpaid Leave'] = 0;
-            } else {
-                leaves.forEach(l => {
-                    const tLabel = (l.leaveTypeName || l.type || '').toLowerCase();
-                    if (tLabel.includes('sick') || tLabel.includes('ป่วย')) counts['Sick Leave']++;
-                    else if (tLabel.includes('personal') || tLabel.includes('กิจ')) counts['Personal Leave']++;
-                    else if (tLabel.includes('annual') || tLabel.includes('พักร้อน') || tLabel.includes('พักผ่อน')) counts['Annual Leave']++;
-                    else if (tLabel.includes('unpaid') || tLabel.includes('ไม่รับเงิน')) counts['Unpaid Leave']++;
-                });
-            }
+            leaves.forEach(l => {
+                const tLabel = (l.leaveTypeName || l.type || '').split(' (')[0].toLowerCase();
+                if (tLabel.includes('sick') || tLabel.includes('ป่วย')) counts['Sick Leave']++;
+                else if (tLabel.includes('personal') || tLabel.includes('กิจ')) counts['Personal Leave']++;
+                else if (tLabel.includes('annual') || tLabel.includes('พักร้อน') || tLabel.includes('พักผ่อน')) counts['Annual Leave']++;
+                else if (tLabel.includes('unpaid') || tLabel.includes('ไม่รับเงิน')) counts['Unpaid Leave']++;
+            });
 
-            new Chart(document.getElementById('leaveTypeChart'), {
+            if (typeChartInstance) typeChartInstance.destroy();
+            
+            typeChartInstance = new Chart(document.getElementById('leaveTypeChart'), {
                 type: 'bar',
                 data: {
                     labels: Object.keys(counts),
                     datasets: [{
-                        label: 'Number of Requests',
+                        label: 'Requests',
                         data: Object.values(counts),
                         backgroundColor: ['#3b82f6', '#ef4444', '#8b5cf6', '#9ca3af'],
-                        borderRadius: 0,
-                        barPercentage: 0.6
+                        borderRadius: 8,
+                        barPercentage: 0.5
                     }]
                 },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false, 
                     plugins: { 
-                        legend: { 
-                            position: 'bottom',
-                            labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
-                        } 
+                        legend: { display: false }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
+                        y: { beginAtZero: true, ticks: { stepSize: 1, color: '#94a3b8' }, grid: { borderDash: [2, 4], drawBorder: false } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { weight: '600' } } }
                     }
                 }
             });
         }
 
-        function updateDayChart(leaves) {
-            // Setup last 6 months for chart x-axis
-            const months = [];
-            for (let i = 5; i >= 0; i--) {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
-                months.push(d.toLocaleString('default', { month: 'short', year: 'numeric' }));
-            }
-            
-            const datasetsMap = {
-                'Annual Leave': { label: 'Annual Leave', data: Array(months.length).fill(0), borderColor: '#3b82f6', backgroundColor: '#3b82f6', fill: false, tension: 0.1, pointRadius: 4 },
-                'Sick Leave': { label: 'Sick Leave', data: Array(months.length).fill(0), borderColor: '#ef4444', backgroundColor: '#ef4444', fill: false, tension: 0.1, pointRadius: 4 },
-                'Personal Leave': { label: 'Personal Leave', data: Array(months.length).fill(0), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', fill: false, tension: 0.1, pointRadius: 4 },
-                'Unpaid Leave': { label: 'Unpaid Leave', data: Array(months.length).fill(0), borderColor: '#9ca3af', backgroundColor: '#9ca3af', fill: false, tension: 0.1, pointRadius: 4 }
-            };
+        function updateDayChart(leaves, period) {
+            const labels = [];
+            const counts = [];
+            const now = new Date();
 
-            if (leaves.length === 0) {
-                // Mock visual data to match screenshot
-                datasetsMap['Annual Leave'].data = [0, 0, 0, 0, 13, 0];
-                datasetsMap['Sick Leave'].data = [0, 0, 0, 0, 0, 3];
-                datasetsMap['Personal Leave'].data = [0, 0, 0, 0, 2, 0];
+            if (period === 'Day') {
+                for (let i = 23; i >= 0; i--) {
+                    const h = new Date(now);
+                    h.setHours(now.getHours() - i);
+                    labels.push(`${h.getHours()}:00`);
+                    counts.push(leaves.filter(l => new Date(l.startDate).getHours() === h.getHours()).length);
+                }
+            } else if (period === 'Week' || period === 'Month') {
+                const days = period === 'Week' ? 7 : 30;
+                for (let i = days - 1; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setDate(now.getDate() - i);
+                    labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    counts.push(leaves.filter(l => new Date(l.startDate).toDateString() === d.toDateString()).length);
+                }
+                // Handle future entries in current period that are beyond 'now' but within the display window
+                // or if they are in the next few days (as the user's case).
             } else {
-                leaves.forEach(l => {
-                    const dateStr = l.startDate || l.createdAt;
-                    if(dateStr) {
-                        const d = new Date(dateStr);
-                        const monthStr = d.toLocaleString('default', { month: 'short', year: 'numeric' });
-                        const mIndex = months.indexOf(monthStr);
-                        if (mIndex !== -1) {
-                            const tLabel = (l.leaveTypeName || l.type || '').toLowerCase();
-                            if (tLabel.includes('sick') || tLabel.includes('ป่วย')) datasetsMap['Sick Leave'].data[mIndex]++;
-                            else if (tLabel.includes('personal') || tLabel.includes('กิจ')) datasetsMap['Personal Leave'].data[mIndex]++;
-                            else if (tLabel.includes('annual') || tLabel.includes('พักร้อน') || tLabel.includes('พักผ่อน')) datasetsMap['Annual Leave'].data[mIndex]++;
-                            else if (tLabel.includes('unpaid') || tLabel.includes('ไม่รับเงิน')) datasetsMap['Unpaid Leave'].data[mIndex]++;
-                        }
-                    }
-                });
+                for (let i = 11; i >= 0; i--) {
+                    const m = new Date(now);
+                    m.setMonth(now.getMonth() - i);
+                    labels.push(m.toLocaleDateString('default', { month: 'short', year: 'numeric' }));
+                    counts.push(leaves.filter(l => {
+                        const d = new Date(l.startDate);
+                        return d.getMonth() === m.getMonth() && d.getFullYear() === m.getFullYear();
+                    }).length);
+                }
             }
 
-            new Chart(document.getElementById('leaveDayChart'), {
+            if (dayChartInstance) dayChartInstance.destroy();
+
+            dayChartInstance = new Chart(document.getElementById('leaveDayChart'), {
                 type: 'line',
                 data: {
-                    labels: months,
-                    datasets: Object.values(datasetsMap)
+                    labels: labels,
+                    datasets: [{
+                        label: 'Leaves',
+                        data: counts,
+                        borderColor: '#3b82f6',
+                        backgroundColor: (ctx) => {
+                            const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 400);
+                            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+                            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                            return gradient;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2
+                    }]
                 },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 4 }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
+                        y: { beginAtZero: true, ticks: { stepSize: 1, color: '#94a3b8' }, grid: { borderDash: [2, 4], drawBorder: false } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 45, minRotation: 45 } }
                     }
                 }
             });
         }
 
         function updateDecisionChart(leaves) {
-            let approved = 0, rejected = 0, pending = 0;
+            let approved = leaves.filter(l => (l.status || '').toLowerCase().includes('approve')).length;
+            let rejected = leaves.filter(l => (l.status || '').toLowerCase().includes('reject')).length;
+            let pending = leaves.filter(l => (l.status || '').toLowerCase() === 'pending').length;
 
-            if (leaves.length === 0) {
-                // mock to match screenshot "Approved: 2 (100%)"
-                approved = 2;
-            } else {
-                approved = leaves.filter(l => (l.status || '').toLowerCase().includes('approve')).length;
-                rejected = leaves.filter(l => (l.status || '').toLowerCase().includes('reject')).length;
-                pending = leaves.filter(l => (l.status || '').toLowerCase() === 'pending').length;
-            }
+            if (decisionChartInstance) decisionChartInstance.destroy();
 
-            // Exclude zeros for cleaner pie chart
-            const labels = [];
-            const data = [];
-            const bg = [];
-
-            if (approved > 0) { labels.push('Approved'); data.push(approved); bg.push('#10b981'); }
-            if (rejected > 0) { labels.push('Rejected'); data.push(rejected); bg.push('#ef4444'); }
-            if (pending > 0) { labels.push('Pending'); data.push(pending); bg.push('#f59e0b'); }
-
-            if (labels.length === 0) {
-                labels.push('No Data'); data.push(1); bg.push('#f3f4f6');
-            }
-
-            new Chart(document.getElementById('decisionChart'), {
-                type: 'pie',
+            decisionChartInstance = new Chart(document.getElementById('decisionChart'), {
+                type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels: ['Approved', 'Rejected', 'Pending'],
                     datasets: [{
-                        data: data,
-                        backgroundColor: bg,
-                        borderWidth: 1,
-                        borderColor: '#ffffff'
+                        data: [approved, rejected, pending],
+                        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                        borderWidth: 0,
+                        hoverOffset: 10
                     }]
                 },
                 options: { 
                     responsive: true, 
                     maintainAspectRatio: false,
+                    cutout: '70%',
                     plugins: {
                         legend: {
-                            position: 'right',
-                            labels: { usePointStyle: true, boxWidth: 10, font: { size: 11 } }
+                            position: 'bottom',
+                            labels: { usePointStyle: true, boxWidth: 8, font: { size: 11, weight: '600' }, padding: 20 }
                         }
                     }
                 }
