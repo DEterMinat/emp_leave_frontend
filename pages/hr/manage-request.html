@@ -104,6 +104,36 @@
         </div>
     </div>
 
+    <!-- Reject Reason Modal -->
+    <div id="rejectReasonModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800">ปฏิเสธคำขอลา</h3>
+                    <p class="text-xs text-gray-400">Reject Leave Request</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">กรุณาระบุเหตุผลในการปฏิเสธคำขอลา</p>
+            <textarea id="rejectReasonText"
+                oninput="const v=this.value.trim(); const btn=document.getElementById('confirmRejectBtn'); btn.disabled=!v; btn.classList.toggle('opacity-50',!v); btn.classList.toggle('cursor-not-allowed',!v);"
+                class="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-300 transition"
+                rows="3" placeholder="เหตุผลการปฏิเสธ..."></textarea>
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeRejectModal()"
+                    class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition">
+                    ยกเลิก
+                </button>
+                <button id="confirmRejectBtn" onclick="confirmReject()" disabled
+                    class="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition opacity-50 cursor-not-allowed">
+                    ยืนยันปฏิเสธ
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Attachment viewer modal (lightweight, works until backend provides listing API) -->
     <div id="attachmentModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-[1rem] shadow-2xl w-full max-w-3xl overflow-auto p-6">
@@ -320,23 +350,60 @@
                 };
 
                 if (decision === 'Approved') {
-                    await API.leaves.approve(currentActiveId, payload); 
+                    await API.leaves.approve(currentActiveId, payload);
+                    if (typeof UI !== 'undefined' && UI.showToast) {
+                        UI.showToast('อนุมัติคำขอลาเรียบร้อยแล้ว', 'success');
+                    }
+                    closeManageModal();
+                    initManageRequests();
                 } else {
-                    const rejectReason = prompt("ระบุเหตุผลการปฏิเสธ:");
-                    if (rejectReason === null) return;
-                    payload.comment = rejectReason;
-                    await API.leaves.reject(currentActiveId, payload); 
+                    // Open reject reason modal instead of native prompt()
+                    closeManageModal();
+                    openRejectModal(currentActiveId, payload);
                 }
-                
-                if (typeof UI !== 'undefined' && UI.showToast) {
-                    UI.showToast(`Action successful: ${decision}`, 'success');
-                }
-                closeManageModal();
-                initManageRequests(); 
             } catch (error) {
                 if (typeof UI !== 'undefined' && UI.showToast) {
                     UI.showToast('Failed to handle decision: ' + error.message, 'error');
                 }
+            }
+        }
+
+        // Reject reason modal logic
+        let _pendingRejectId = null;
+        let _pendingRejectPayload = null;
+
+        function openRejectModal(id, payload) {
+            _pendingRejectId = id;
+            _pendingRejectPayload = payload;
+            const textarea = document.getElementById('rejectReasonText');
+            textarea.value = '';
+            const btn = document.getElementById('confirmRejectBtn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('rejectReasonModal').classList.remove('hidden');
+            textarea.focus();
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectReasonModal').classList.add('hidden');
+            _pendingRejectId = null;
+            _pendingRejectPayload = null;
+        }
+
+        async function confirmReject() {
+            const reason = document.getElementById('rejectReasonText').value.trim();
+            if (!reason) {
+                UI.showToast('กรุณาระบุเหตุผลในการปฏิเสธคำขอลา', 'error');
+                return;
+            }
+            _pendingRejectPayload.comment = reason;
+            try {
+                await API.leaves.reject(_pendingRejectId, _pendingRejectPayload);
+                closeRejectModal();
+                UI.showToast('ปฏิเสธคำขอลาเรียบร้อยแล้ว', 'success');
+                initManageRequests();
+            } catch (error) {
+                UI.showToast('Failed to reject: ' + error.message, 'error');
             }
         }
 

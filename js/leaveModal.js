@@ -279,6 +279,12 @@
                     return;
                 }
 
+                // Inform user if annual leave carry-over was capped at 12 days
+                if (validation.carryOverCapped) {
+                    UI.showToast('ℹ️ ยอดทบสะสมต้องไม่เกิน 12 วัน — สิทธิ์ของคุณถูกจำกัดที่ 12 วัน', 'warning');
+                }
+
+
                 // CHECK FOR DATE OVERLAP with existing Pending or Approved leaves
                 const newStart = new Date(rawStartDate);
                 const newEnd   = new Date(rawEndDate);
@@ -591,18 +597,18 @@
                 const key = leaveTypeMap[type] || type;
                 if (key === 'sick' && diffDays > 3) {
                     document.getElementById('attachmentSection').classList.remove('hidden');
-                    alert("ลาป่วยเกิน 3 วัน กรุณาแนบใบรับรองแพทย์ ");
+                    UI.showToast('ลาป่วยเกิน 3 วัน กรุณาแนบใบรับรองแพทย์', 'warning');
                 }
 
                 const leadTime = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
                 if (key === 'personal' && leadTime < 3) {
-                    alert("ลากิจส่วนตัวต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน ");
+                    UI.showToast('ลากิจส่วนตัวต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน', 'warning');
                 } else if (key === 'annual' && leadTime < 7) {
-                    alert("ลาพักผ่อนต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน ");
+                    UI.showToast('ลาพักผ่อนต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน', 'warning');
                 } else if (key === 'ordination' && leadTime < 30) {
-                    alert("ลาอุปสมบทต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน ");
+                    UI.showToast('ลาอุปสมบทต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน', 'warning');
                 } else if (key === 'unpaid' && leadTime < 7) {
-                    alert("ลางานไม่รับเงินต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน ");
+                    UI.showToast('ลางานไม่รับเงินต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน', 'warning');
                 }
             }
         }

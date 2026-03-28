@@ -342,7 +342,7 @@ class LeaveQuotaManager {
         if (typeof UI !== 'undefined') {
             UI.showToast('บันทึกสิทธิวันลาเรียบร้อยแล้ว', 'success');
         } else {
-            alert('Saved successfully.');
+            UI.showToast('Saved successfully.', 'success');
         }
     }
 }

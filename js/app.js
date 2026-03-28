@@ -17,12 +17,18 @@ const CONFIG = {
 // Leave Rules (Business Logic)
 // ============================================
 const LEAVE_RULES = {
-    annual: { key: 'annual', advanceDays: 7, maxDays: 6, requireAttachment: false, label: 'ลาพักผ่อน' },
-    sick: { key: 'sick', advanceDays: 0, maxDays: 30, requireAttachmentAfter: 3, label: 'ลาป่วย' },
-    personal: { key: 'personal', advanceDays: 3, maxDays: 3, requireAttachment: true, label: 'ลากิจส่วนตัว' },
-    ordination: { key: 'ordination', advanceDays: 30, maxDays: 120, requireAttachment: true, label: 'ลาอุปสมบท' },
-    unpaid: { key: 'unpaid', advanceDays: 7, maxDays: 30, requireAttachment: false, label: 'ลางานไม่รับเงิน' }
+    annual:     { key: 'annual',     advanceDays: 7,  maxDays: 6,   requireAttachment: false, label: 'ลาพักผ่อน' },
+    sick:       { key: 'sick',       advanceDays: 0,  maxDays: 30,  requireAttachmentAfter: 3, label: 'ลาป่วย' },
+    personal:   { key: 'personal',   advanceDays: 3,  maxDays: 3,   requireAttachment: true,  label: 'ลากิจส่วนตัว' },
+    ordination: { key: 'ordination', advanceDays: 30, maxDays: 120, requireAttachment: true,  label: 'ลาอุปสมบท' },
+    unpaid:     { key: 'unpaid',     advanceDays: 7,  maxDays: 30,  requireAttachment: false, label: 'ลางานไม่รับเงิน' }
 };
+
+// ============================================
+// Feature Flag: Hidden leave types
+// To restore Ordination & Unpaid Leave, change to: []
+// ============================================
+const HIDDEN_LEAVE_TYPES = ['ordination', 'unpaid', 'บวช', 'อุปสมบท', 'unpaid', 'ไม่รับเงิน'];
 
 // ============================================
 // UI Utilities
@@ -90,9 +96,17 @@ const UI = {
             const select = document.getElementById(selectElementId);
             if (!select) return;
 
+            // Apply HIDDEN_LEAVE_TYPES feature flag
+            const visibleTypes = HIDDEN_LEAVE_TYPES.length
+                ? types.filter(t => {
+                    const name = (t.typeName || '').toLowerCase();
+                    return !HIDDEN_LEAVE_TYPES.some(kw => name.includes(kw.toLowerCase()));
+                  })
+                : types;
+
             // วาดตัวเลือกใหม่ โดยเก็บ "ค่าเริ่มต้น" ไว้
             select.innerHTML = '<option value="">Select Leave Type</option>' + 
-                types.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
+                visibleTypes.map(t => `<option value="${t.id}">${t.typeName}</option>`).join('');
         } catch (error) {
             console.error('Failed to fill leave types:', error);
             this.showToast('ไม่สามารถโหลดประเภทการลาได้', 'error');
@@ -214,6 +228,8 @@ const LeaveRequest = {
         // Use 0 as default tenure if employee data is missing (safer)
         const tenureYears = employee ? this.calculateTenure(employee.createdAt || employee.joiningDate) : 0; 
 
+        let carryOverCapped = false;
+
         if (rules.key === 'annual') {
             if (tenureYears < 1) {
                 return {
@@ -224,7 +240,16 @@ const LeaveRequest = {
             
             // USE CARRY-OVER LOGIC (Dynamic Quota)
             if (employee?.createdAt || employee?.joiningDate) {
-                rules.maxDays = this.getAnnualQuotaWithCarryOver(employee.createdAt || employee.joiningDate, allLeaves);
+                const joinDate = employee.createdAt || employee.joiningDate;
+                rules.maxDays = this.getAnnualQuotaWithCarryOver(joinDate, allLeaves);
+
+                // Detect if the cap at 12 was applied
+                const joiningYear = new Date(joinDate).getFullYear();
+                const currentYear = new Date().getFullYear();
+                const tenureInYear = Math.max(0, currentYear - joiningYear);
+                let baseY = tenureInYear >= 7 ? 8 : tenureInYear >= 4 ? 7 : tenureInYear >= 1 ? 6 : 0;
+                // Estimate previous carry-over: if maxDays is 12 and baseY < 12, cap was applied
+                carryOverCapped = (baseY < 12) && (rules.maxDays === 12);
             } else {
                 // Fallback to basic tenure tiers if no history provided
                 if (tenureYears >= 7) rules.maxDays = 8;
@@ -295,7 +320,7 @@ const LeaveRequest = {
         const needsAttachment = !!(rules.requireAttachment || 
             (rules.requireAttachmentAfter && days > rules.requireAttachmentAfter));
 
-        return { valid: true, needsAttachment };
+        return { valid: true, needsAttachment, carryOverCapped };
 
     },
 

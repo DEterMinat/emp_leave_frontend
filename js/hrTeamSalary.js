@@ -495,7 +495,7 @@ class TeamSalaryManager {
             if (typeof UI !== 'undefined') {
                 UI.showToast('Failed to update employee information.', 'error');
             } else {
-                alert('Failed to update employee information.');
+                UI.showToast('Failed to update employee information.', 'error');
             }
         } finally {
             saveBtn.disabled = false;
