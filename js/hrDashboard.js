@@ -13,6 +13,14 @@ async function initHRDashboard() {
         ]);
         window.currentUserProfile = user; // Store for quota calculations
 
+        // Update Header
+        if (user) {
+            const nameEl = document.getElementById('user-name');
+            const roleEl = document.getElementById('user-role-dept');
+            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Administrator';
+            if (roleEl) roleEl.innerText = 'HR';
+        }
+
         // update stats from the user's own leaves
         const total = (leaves || []).length;
         const pending = (leaves || []).filter(l => (l.status || '').toLowerCase() === 'pending').length;
@@ -107,9 +115,8 @@ function renderLeaveBalances(leaves, entitlements = null) {
         { key: 'Annual Leave', idKey: 'annual', total: 6, icon: 'sun', color: 'from-blue-400 to-blue-300 text-white' },
         { key: 'Sick Leave', idKey: 'sick', total: 30, icon: 'heart', color: 'from-pink-300 to-pink-200 text-white' },
         { key: 'Personal Leave', idKey: 'personal', total: 3, icon: 'user', color: 'from-purple-300 to-purple-200 text-white' },
-        // HIDDEN: Ordination & Unpaid — to restore, uncomment the two lines below
-        // { key: 'Ordination Leave', idKey: 'ordination', total: 120, icon: 'church', color: 'from-orange-400 to-orange-300 text-white' },
-        // { key: 'Unpaid Leave', idKey: 'unpaid', total: 30, icon: 'wallet', color: 'from-gray-400 to-gray-300 text-white' }
+        { key: 'Ordination Leave', idKey: 'ordination', total: 120, icon: 'church', color: 'from-orange-400 to-orange-300 text-white' },
+        { key: 'Unpaid Leave', idKey: 'unpaid', total: 30, icon: 'wallet', color: 'from-gray-400 to-gray-300 text-white' }
     ];
 
     // Build a normalized map of used days keyed by multiple plausible identifiers

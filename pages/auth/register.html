@@ -16,7 +16,6 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
             <div class="flex items-center space-x-4">
-                    <div class="lang-switcher-container mr-4 z-50"></div>
                 <a href="../../index.html" class="p-2 hover:bg-white rounded-xl transition shadow-sm border border-transparent hover:border-gray-100">
                     <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i>
                 </a>
@@ -25,9 +24,12 @@
                     <p class="text-gray-500 text-sm">Create new user and employee profile</p>
                 </div>
             </div>
-            <div class="hidden md:flex items-center space-x-2 px-4 py-2 bg-amber-50 rounded-xl border border-amber-100">
-                <i data-lucide="shield-alert" class="w-5 h-5 text-amber-500"></i>
-                <span class="text-amber-700 text-xs font-bold uppercase tracking-wider">Admin Only</span>
+            <div class="flex items-center space-x-4">
+                <div class="lang-switcher-container z-50"></div>
+                <div class="hidden md:flex items-center space-x-2 px-4 py-2 bg-amber-50 rounded-xl border border-amber-100">
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-amber-500"></i>
+                    <span class="text-amber-700 text-xs font-bold uppercase tracking-wider">Admin Only</span>
+                </div>
             </div>
         </div>
 

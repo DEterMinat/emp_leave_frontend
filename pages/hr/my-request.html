@@ -23,11 +23,13 @@
                         <p class="text-sm text-gray-500 italic" id="user-role-dept">HR Administrator</p>
                     </div>
                 </div>
-                <div class="lang-switcher-container mr-6 z-50"></div>
+                <div class="flex items-center space-x-4">
+                    <div class="lang-switcher-container mr-6 z-50"></div>
                     <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                    <span data-i18n="common.newRequest">New Request</span>
-                </button>
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        <span data-i18n="common.newRequest">New Request</span>
+                    </button>
+                </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
                 <a href="dashboard.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
@@ -140,7 +142,7 @@
                 // 1. Fetch User Info
                 currentUser = await API.users.getById(userId);
                 document.getElementById('user-name').innerText = currentUser.username || 'HR Manager'; 
-                document.getElementById('user-role-dept').innerText = currentUser.roleName || 'Human Resources';
+                document.getElementById('user-role-dept').innerText = 'HR';
 
                 // Initial load: 'my' view
                 await loadLeaves();

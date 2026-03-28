@@ -26,7 +26,14 @@ class LeaveQuotaManager {
                 return;
             }
 
-            // 1. Fetch all users
+            // 1. Fetch user info for Navbar
+            const user = await API.users.getById(userId);
+            const nameEl = document.getElementById('user-name');
+            const roleEl = document.getElementById('user-role-dept');
+            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Management'; 
+            if (roleEl) roleEl.innerText = 'HR';
+
+            // 2. Fetch all users
             const users = await API.users.getAll();
             
             // 2. Fetch leave balances for all users (or generate if API fails/missing)

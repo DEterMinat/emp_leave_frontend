@@ -20,15 +20,17 @@
                         <i data-lucide="settings"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold text-gray-800">HR Administrator</h1>
-                        <p class="text-sm text-gray-500">ระบบจัดการทรัพยากรบุคคล</p>
+                        <h1 class="text-lg font-bold text-gray-800" id="user-name">HR Administrator</h1>
+                        <p class="text-sm text-gray-500" id="user-role-dept">HR</p>
                     </div>
                 </div>
-                <div class="lang-switcher-container mr-6 z-50"></div>
+                <div class="flex items-center space-x-4">
+                    <div class="lang-switcher-container mr-6 z-50"></div>
                     <button onclick="LeaveModal.toggle()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 transition shadow-lg shadow-blue-200">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                    <span data-i18n="common.newRequest">New Request</span>
-                </button>
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        <span data-i18n="common.newRequest">New Request</span>
+                    </button>
+                </div>
             </div>
             <div class="flex space-x-8 mt-2 overflow-x-auto">
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap">

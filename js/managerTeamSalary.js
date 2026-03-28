@@ -378,7 +378,7 @@ class ManagerTeamSalaryManager {
             const left = balance.remainingDays;
             const used = balance.usedDays;
             const total = balance.totalDays;
-            const percentage = total > 0 ? (used / total) * 100 : 0;
+            const percentage = total > 0 ? Math.min(100, (used / total) * 100) : 0;
 
             return `
                 <div class="p-4 rounded-xl border ${config.colors.ring} ${config.colors.bg} shadow-sm group hover:shadow-md transition-all duration-300">
@@ -399,7 +399,7 @@ class ManagerTeamSalaryManager {
                             <div class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">left</div>
                         </div>
                     </div>
-                    <div class="mt-3 w-full bg-white/60 rounded-full h-1.5 px-0.5 py-0.5">
+                    <div class="mt-3 w-full bg-white/60 rounded-full h-1.5 px-0.5 py-0.5 overflow-hidden">
                         <div class="${config.colors.fill} h-1 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
                     </div>
                 </div>

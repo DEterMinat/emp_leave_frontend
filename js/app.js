@@ -28,7 +28,7 @@ const LEAVE_RULES = {
 // Feature Flag: Hidden leave types
 // To restore Ordination & Unpaid Leave, change to: []
 // ============================================
-const HIDDEN_LEAVE_TYPES = ['ordination', 'unpaid', 'บวช', 'อุปสมบท', 'unpaid', 'ไม่รับเงิน'];
+const HIDDEN_LEAVE_TYPES = [];
 
 // ============================================
 // UI Utilities

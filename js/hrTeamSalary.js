@@ -9,6 +9,7 @@ class TeamSalaryManager {
         this.currentSort = 'name';
         this.searchQuery = '';
         this.baseSalaries = {}; // Mock data store
+        this.departments = [];
     }
 
     async init() {
@@ -20,8 +21,20 @@ class TeamSalaryManager {
                 return;
             }
 
-            // Fetch all employees from the new endpoint
-            const employeesData = await API.employees.getAll();
+            // 1. Fetch user info for Navbar
+            const user = await API.users.getById(userId);
+            const nameEl = document.getElementById('user-name');
+            const roleEl = document.getElementById('user-role-dept');
+            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Management'; 
+            if (roleEl) roleEl.innerText = 'HR';
+
+            // 2. Fetch all employees and departments
+            const [employeesData, departmentsData] = await Promise.all([
+                API.employees.getAll(),
+                API.references.getDepartments()
+            ]);
+
+            this.departments = departmentsData;
             
             // Map the real employee data
             this.employees = employeesData.map(emp => {
@@ -36,6 +49,7 @@ class TeamSalaryManager {
                     lastName: emp.lastName || '',
                     position: emp.position || 'Employee',
                     department: emp.departmentName || 'General',
+                    departmentId: emp.departmentId || null,
                     baseSalary: emp.salary || 0,
                     bonus: emp.bonus || 0,
                     rawUser: emp
@@ -392,7 +406,7 @@ class TeamSalaryManager {
             const left = balance.remainingDays;
             const total = balance.totalDays;
             const used = balance.usedDays;
-            const percentage = total > 0 ? (used / total) * 100 : 0;
+            const percentage = total > 0 ? Math.min(100, (used / total) * 100) : 0;
 
             // terminologies matching dashboard view
             return `
@@ -414,7 +428,7 @@ class TeamSalaryManager {
                             <div class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">left</div>
                         </div>
                     </div>
-                    <div class="mt-4 w-full bg-white/60 rounded-full h-2 px-0.5 py-0.5">
+                    <div class="mt-4 w-full bg-white/60 rounded-full h-2 px-0.5 py-0.5 overflow-hidden">
                         <div class="${config.colors.fill} h-1 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(0,0,0,0.1)]" style="width: ${percentage}%"></div>
                     </div>
                 </div>
@@ -443,7 +457,23 @@ class TeamSalaryManager {
         document.getElementById('editPhone').value = emp.phone || `+66 8X-${p1}-${p2}`;
         
         document.getElementById('editPosition').value = emp.position;
-        document.getElementById('editDept').value = emp.department;
+        
+        // Populate Dynamic Department Dropdown
+        const deptSelect = document.getElementById('editDept');
+        if (deptSelect) {
+            deptSelect.innerHTML = `<option value="">Select Department</option>` + 
+                this.departments.map(d => `<option value="${d.id}">${d.departmentName}</option>`).join('');
+            
+            // Set current value (try ID first, then Name)
+            if (emp.departmentId) {
+                deptSelect.value = emp.departmentId;
+            } else {
+                // Try matching by name as fallback
+                const matched = this.departments.find(d => d.departmentName === emp.department);
+                if (matched) deptSelect.value = matched.id;
+            }
+        }
+
         document.getElementById('editBaseSalary').value = emp.baseSalary;
         document.getElementById('editBonus').value = emp.bonus;
 
@@ -470,7 +500,7 @@ class TeamSalaryManager {
             firstName: document.getElementById('editFirstName').value,
             lastName: document.getElementById('editLastName').value,
             position: document.getElementById('editPosition').value,
-            departmentName: document.getElementById('editDept').value,
+            departmentId: document.getElementById('editDept').value,
             salary: parseFloat(document.getElementById('editBaseSalary').value) || 0,
             bonus: parseFloat(document.getElementById('editBonus').value) || 0,
             // phone might need to be added to the API/DB schema later
