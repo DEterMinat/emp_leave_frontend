@@ -115,7 +115,7 @@
                 const user = await API.users.getById(userId);
                 const displayName = ((user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user.username || 'Manager');
                 document.querySelector('h1').innerText = displayName;
-                document.querySelector('.text-sm.text-gray-500').innerText = `หัวหน้างาน - ${user.department || 'All'}`;
+                document.querySelector('.text-sm.text-gray-500').innerText = 'Manager';
 
                 // 2. ดึงข้อมูลใบลาทั้งหมดของทีม
                 const allLeaves = await API.leaves.getAll();

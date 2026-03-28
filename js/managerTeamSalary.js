@@ -24,7 +24,7 @@ class ManagerTeamSalaryManager {
             if (currentUser) {
                 const displayName = ((currentUser.firstName || currentUser.lastName)) ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : currentUser.username || 'Manager';
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = `${currentUser.roleName || 'Manager'} - ${currentUser.department || 'All'}`;
+                document.getElementById('user-role-dept').innerText = 'Manager';
             }
 
             // Fetch all employees from the new endpoint

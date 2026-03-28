@@ -24,7 +24,7 @@ class ManagerAttendanceManager {
             if (currentUser) {
                 const displayName = (currentUser.firstName && currentUser.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : (currentUser.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = `${currentUser.roleName || 'Manager'} - ${currentUser.department || 'All'}`;
+                document.getElementById('user-role-dept').innerText = 'Manager';
             }
 
             // 1. Fetch real attendance records for today (or all)

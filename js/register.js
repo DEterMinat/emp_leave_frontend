@@ -149,7 +149,7 @@ class RegisterManager {
             position: document.getElementById('position').value,
             departmentId: document.getElementById('department').value,
             salary: parseFloat(document.getElementById('baseSalary').value) || 0,
-            annualLeaveQuota: 10 // Default annual leave
+            annualLeaveQuota: 6 // Default annual leave (base quota)
         };
 
         try {

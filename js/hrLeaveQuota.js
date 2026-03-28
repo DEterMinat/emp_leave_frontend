@@ -13,8 +13,8 @@ class LeaveQuotaManager {
             'Annual Leave': { base: 6, max: 8 }, // Will adjust by tenure
             'Sick Leave': { base: 30 },
             'Personal Leave': { base: 3 },
-            'Ordination Leave': { base: 120 },
-            'Unpaid Leave': { base: 30 }
+            'Ordination Leave': { base: 30 },
+            'Unpaid Leave': { base: 120 }
         };
     }
 
@@ -236,8 +236,8 @@ class LeaveQuotaManager {
             { key: 'ลาพักร้อน', title: 'ลาพักผ่อน (Annual Leave)', subtitle: '1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7+ ปี = 8 วัน', color: 'blue' },
             { key: 'ลาป่วย', title: 'ลาป่วย (Sick Leave)', subtitle: 'สูงสุด 30 วัน', color: 'red' },
             { key: 'ลากิจ', title: 'ลากิจ (Personal Leave)', subtitle: 'สูงสุด 3 วัน', color: 'purple' },
-            { key: 'ลาอุปสมบท', title: 'ลาอุปสมบท (Ordination Leave)', subtitle: 'สูงสุด 120 วัน', color: 'orange' },
-            { key: 'UNPAID', title: 'ลางานไม่รับเงิน (Unpaid Leave)', subtitle: 'สูงสุด 30 วัน', color: 'gray' }
+            { key: 'ลาอุปสมบท', title: 'ลาอุปสมบท (Ordination Leave)', subtitle: 'สูงสุด 30 วัน', color: 'orange' },
+            { key: 'UNPAID', title: 'ลางานไม่รับเงิน (Unpaid Leave)', subtitle: 'สูงสุด 120 วัน', color: 'gray' }
         ];
 
         const colorMap = {

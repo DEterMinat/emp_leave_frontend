@@ -149,7 +149,7 @@
                 const user = await API.users.getById(userId);
                 const displayName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = user.roleName || 'Team Manager';
+                document.getElementById('user-role-dept').innerText = 'Manager';
 
                 // 2. Fetch all leave requests (Team View for Manager)
                 // Note: Manager uses API.leaves.getAll() without userId to see the whole list,
@@ -302,13 +302,48 @@
                 if (req && (req.employeeId || req.userId || req.employee?.id) == managerId) {
                     UI.showToast('คุณไม่สามารถจัดการคำขอลาของตนเองได้', 'warning');
                     return;
-                }                const payload = {
+                }
+
+                const payload = {
                     approverId: managerId,
                     comment: decision === 'Approved' ? "Approved by Manager" : "Rejected by Manager"
                 };
 
                 if (decision === 'Approved') {
-                    await API.leaves.approve(id, payload); 
+                    try {
+                        await API.leaves.approve(id, payload); 
+                    } catch (error) {
+                        // AUTO-HEALING: If balance record is missing, initialize it and retry once
+                        if (error.message.includes("Leave balance record not found") && req) {
+                            console.warn('Balance record missing. Attempting auto-initialization...', req.employeeId);
+                            const empId = req.employeeId || req.userId || (req.employee && req.employee.id);
+                            if (empId) {
+                                try {
+                                    // Step 1: Initialize balances
+                                    try {
+                                        await API.leaveBalances.initialize(empId);
+                                    } catch (initErr) {
+                                        console.error('Initialization failed', initErr);
+                                        throw new Error(`Initialization failed: ${initErr.message}`);
+                                    }
+                                    
+                                    // Step 2: Retry approval
+                                    try {
+                                        await API.leaves.approve(id, payload);
+                                    } catch (retryErr) {
+                                        console.error('Retry approval failed', retryErr);
+                                        throw new Error(`Retried approval failed: ${retryErr.message}`);
+                                    }
+                                } catch (e) {
+                                    throw e; // Propagate the specific step error
+                                }
+                            } else {
+                                throw error;
+                            }
+                        } else {
+                            throw error;
+                        }
+                    }
                 } else {
                     // Open reject reason modal instead of native prompt()
                     openRejectModal(id, payload);

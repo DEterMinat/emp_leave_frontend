@@ -352,7 +352,47 @@
                 };
 
                 if (decision === 'Approved') {
-                    await API.leaves.approve(currentActiveId, payload);
+                    try {
+                        await API.leaves.approve(currentActiveId, payload);
+                    } catch (error) {
+                        // AUTO-HEALING: If balance record is missing, initialize it and retry once
+                        if (error.message.includes("Leave balance record not found") && req) {
+                            console.warn('Balance record missing. Attempting auto-initialization...', req.userId || req.employeeId);
+                            
+                            try {
+                                // 1. Resolve Employee ID: Backend initialize expects employeeId, not userId
+                                let empId = req.employeeId || (req.employee && req.employee.id);
+                                if (!empId && req.employee?.userId) {
+                                     // If we only have userId on the employee object
+                                     empId = (await API.employees.getByUserId(req.employee.userId))?.id;
+                                } else if (!empId && (req.userId || req.employeeUserId)) {
+                                     // Try fetching by the main userId field
+                                     const profile = await API.employees.getByUserId(req.userId || req.employeeUserId);
+                                     empId = profile?.id;
+                                }
+
+                                if (!empId) throw new Error('Could not resolve Employee ID for initialization');
+
+                                // Step 1: Initialize balances
+                                try {
+                                    await API.leaveBalances.initialize(empId);
+                                } catch (initErr) {
+                                    throw new Error(`Initialization failed: ${initErr.message}`);
+                                }
+                                
+                                // Step 2: Retry approval
+                                try {
+                                    await API.leaves.approve(currentActiveId, payload);
+                                } catch (retryErr) {
+                                    throw new Error(`Retried approval failed: ${retryErr.message}`);
+                                }
+                            } catch (healingErr) {
+                                throw healingErr;
+                            }
+                        } else {
+                            throw error;
+                        }
+                    }
                     if (typeof UI !== 'undefined' && UI.showToast) {
                         UI.showToast('อนุมัติคำขอลาเรียบร้อยแล้ว', 'success');
                     }

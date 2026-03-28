@@ -21,6 +21,8 @@
                             <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
                             <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
                             <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
+                            <option value="7001234567890abcdef12345">Ordination Leave (ลาอุปสมบท)</option>
+                            <option value="7002345678901bcdef23456">Unpaid Leave (ลางานไม่รับเงิน)</option>
                         </select>
                     </div>
 
@@ -559,14 +561,14 @@
             } else if (textContent.includes('ordination') || textContent.includes('บวช')) {
                 rulesList.innerHTML = `
                     <li>เฉพาะพนักงานชายที่มีอายุงาน 1 ปีขึ้นไป</li>
-                    <li>ลาได้สูงสุด 120 วัน</li>
+                    <li>ลาได้สูงสุด 30 วัน</li>
                     <li>ต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน</li>
                     <li>โปรดแนบเอกสารที่เกี่ยวข้อง</li>
                 `;
             } else if (textContent.includes('unpaid') || textContent.includes('ไม่รับเงิน')) {
                 rulesList.innerHTML = `
                     <li>การลางานโดยไม่รับค่าจ้าง</li>
-                    <li>ลาได้สูงสุด 30 วัน/ปี</li>
+                    <li>ลาได้สูงสุด 120 วัน/ปี</li>
                     <li>ต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน</li>
                 `;
             } else {

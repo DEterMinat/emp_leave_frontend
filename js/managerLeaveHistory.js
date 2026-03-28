@@ -30,7 +30,7 @@ class ManagerLeaveHistory {
             if (this.currentUser) {
                 const displayName = ((this.currentUser.firstName || this.currentUser.lastName)) ? `${this.currentUser.firstName || ''} ${this.currentUser.lastName || ''}`.trim() : this.currentUser.username || 'Manager';
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = `${this.currentUser.roleName || 'Manager'} - ${this.currentUser.department || 'All'}`;
+                document.getElementById('user-role-dept').innerText = 'Manager';
             }
 
             // Fetch team members globally to map IDs to Names

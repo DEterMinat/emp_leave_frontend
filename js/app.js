@@ -20,8 +20,8 @@ const LEAVE_RULES = {
     annual:     { key: 'annual',     advanceDays: 7,  maxDays: 6,   requireAttachment: false, label: 'ลาพักผ่อน' },
     sick:       { key: 'sick',       advanceDays: 0,  maxDays: 30,  requireAttachmentAfter: 3, label: 'ลาป่วย' },
     personal:   { key: 'personal',   advanceDays: 3,  maxDays: 3,   requireAttachment: true,  label: 'ลากิจส่วนตัว' },
-    ordination: { key: 'ordination', advanceDays: 30, maxDays: 120, requireAttachment: true,  label: 'ลาอุปสมบท' },
-    unpaid:     { key: 'unpaid',     advanceDays: 7,  maxDays: 30,  requireAttachment: false, label: 'ลางานไม่รับเงิน' }
+    ordination: { key: 'ordination', advanceDays: 30, maxDays: 30,  requireAttachment: true,  label: 'ลาอุปสมบท' },
+    unpaid:     { key: 'unpaid',     advanceDays: 7,  maxDays: 120, requireAttachment: false, label: 'ลางานไม่รับเงิน' }
 };
 
 // ============================================
@@ -150,7 +150,8 @@ const LeaveRequest = {
      */
     getAnnualQuota(createdAt) {
         const tenureYears = this.calculateTenure(createdAt);
-        if (tenureYears < 1) return 0; // New accounts 
+        // Show the base quota for UI consistency, even if tenure < 1. 
+        // Actual validation blocks the request if tenure < 1.
         if (tenureYears >= 7) return 8;
         if (tenureYears >= 4) return 7;
         return 6;
@@ -181,12 +182,7 @@ const LeaveRequest = {
             
             // Tenure at year Y = Year - Joining Year
             const tenureInYear = Math.max(0, year - joiningYear);
-            let baseY = 0;
-            if (tenureInYear >= 1) {
-                if (tenureInYear >= 7) baseY = 8;
-                else if (tenureInYear >= 4) baseY = 7;
-                else baseY = 6;
-            }
+            let baseY = (tenureInYear >= 7) ? 8 : (tenureInYear >= 4) ? 7 : 6;
 
             // Total available for THIS year
             totalThisYear = Math.min(12, baseY + carryOver);
