@@ -324,7 +324,11 @@
 
                 // Check if attachment is required but missing
                 if (validation.needsAttachment && uploadedFiles.length === 0) {
-                    UI.showToast(I18N.t('modal.attachmentRequired'), 'warning');
+                    let exampleText = "เอกสารที่เกี่ยวข้อง";
+                    if (typeKey === 'sick') exampleText = "ใบรับรองแพทย์";
+                    else if (typeKey === 'ordination') exampleText = "เอกสารที่เกี่ยวข้องกับการบวช";
+                    
+                    UI.showToast(I18N.t('modal.attachmentRequired').replace('{0}', exampleText), 'warning');
                     return;
                 }
 

@@ -104,7 +104,7 @@ const TRANSLATIONS = {
         "modal.missingFields": "กรุณากรอกข้อมูลให้ครบถ้วน",
         "modal.missingDates": "กรุณาระบุวันที่เริ่มต้นและสิ้นสุด",
         "modal.overlapError": "วันที่ทับซ้อนกับ {0} ({1} – {2}) ที่มีสถานะ \"{3}\" อยู่แล้ว",
-        "modal.attachmentRequired": "การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)",
+        "modal.attachmentRequired": "การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น {0})",
         "type.annual": "ลาพักผ่อน",
         "type.sick": "ลาป่วย",
         "type.personal": "ลากิจ",
