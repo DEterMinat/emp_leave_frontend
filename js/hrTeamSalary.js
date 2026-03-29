@@ -22,19 +22,28 @@ class TeamSalaryManager {
             }
 
             // 1. Fetch user info for Navbar
-            const user = await API.users.getById(userId);
+            const currentUser = await API.users.getById(userId);
+            const currentEmployee = await API.employees.getByUserId(userId);
+            const hrDept = currentEmployee ? currentEmployee.departmentName : null;
+
             const nameEl = document.getElementById('user-name');
             const roleEl = document.getElementById('user-role-dept');
-            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Management'; 
-            if (roleEl) roleEl.innerText = 'HR';
+            if (nameEl) nameEl.innerText = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.username || 'HR Management'; 
+            if (roleEl) roleEl.innerText = hrDept ? `HR - ${hrDept}` : 'HR';
 
             // 2. Fetch all employees and departments
-            const [employeesData, departmentsData] = await Promise.all([
+            const [employeesDataAll, departmentsData] = await Promise.all([
                 API.employees.getAll(),
                 API.references.getDepartments()
             ]);
 
             this.departments = departmentsData;
+            
+            // Filter by HR's department
+            let employeesData = employeesDataAll;
+            if (hrDept) {
+                employeesData = employeesDataAll.filter(emp => emp.departmentName === hrDept);
+            }
             
             // Map the real employee data
             this.employees = employeesData.map(emp => {

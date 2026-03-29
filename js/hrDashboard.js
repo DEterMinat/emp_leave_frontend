@@ -3,42 +3,71 @@
 if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
 
 async function initHRDashboard() {
-    // Similar to employee dashboard but fetches global data for HR
     try {
-        // For HR dashboard we will show only the HR user's own data (like employee dashboard)
         const userId = localStorage.getItem('userId');
-        const [leaves, user] = await Promise.all([
-            userId ? API.leaves.getAll(userId) : [],
-            userId ? API.users.getById(userId) : null
-        ]);
-        window.currentUserProfile = user; // Store for quota calculations
-
-        // Update Header
-        if (user) {
-            const nameEl = document.getElementById('user-name');
-            const roleEl = document.getElementById('user-role-dept');
-            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Administrator';
-            if (roleEl) roleEl.innerText = 'HR';
+        if (!userId) {
+            window.location.href = '../../index.html';
+            return;
         }
 
-        // update stats from the user's own leaves
-        const total = (leaves || []).length;
-        const pending = (leaves || []).filter(l => (l.status || '').toLowerCase() === 'pending').length;
-        const approved = (leaves || []).filter(l => (l.status || '').toLowerCase() === 'approved').length;
+        // 1. Fetch current HR user and their department
+        const [currentUser, currentEmployee] = await Promise.all([
+            API.users.getById(userId),
+            API.employees.getByUserId(userId)
+        ]);
+        const hrDept = currentEmployee ? currentEmployee.departmentName : null;
+        window.currentUserProfile = currentEmployee;
+
+        // Update Navbar Header
+        if (currentUser) {
+            const nameEl = document.getElementById('user-name');
+            const roleEl = document.getElementById('user-role-dept');
+            if (nameEl) nameEl.innerText = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.username || 'HR Administrator';
+            if (roleEl) roleEl.innerText = hrDept ? `HR - ${hrDept}` : 'HR';
+        }
+
+        // 2. Fetch all necessary data for departmental stats
+        const [allLeaves, allEmps] = await Promise.all([
+            API.leaves.getAll(),
+            API.employees.getAll()
+        ]);
+
+        // Create department map for filtering
+        const empDeptMap = {};
+        allEmps.forEach(e => {
+            const id = e.userId || e.id;
+            empDeptMap[id] = e.departmentName;
+        });
+
+        // 3. Filter leaves by HR's department
+        const deptLeaves = hrDept 
+            ? allLeaves.filter(l => {
+                const reqUserId = l.userId || l.employeeId || (l.employee && (l.employee.id || l.employee.userId));
+                return empDeptMap[reqUserId] === hrDept;
+            })
+            : allLeaves;
+
+        // 4. Update stats from the department's leaves
+        const total = (deptLeaves || []).length;
+        const pending = (deptLeaves || []).filter(l => (l.status || '').toLowerCase() === 'pending').length;
+        const approved = (deptLeaves || []).filter(l => (l.status || '').toLowerCase() === 'approved').length;
 
         document.getElementById('total-req').innerText = total;
         document.getElementById('pending-req').innerText = pending;
         document.getElementById('total-approved').innerText = approved;
 
-    // Try to fetch authoritative entitlements / leave balances for this user.
-    // If available, use them as the 'total' values; otherwise fallback to defaults computed below.
-    const entitlements = await getLeaveEntitlements(userId);
-    console.debug && console.debug('HR entitlements for user', userId, entitlements);
-    renderLeaveBalances(leaves, entitlements);
-    renderRecentRequests(leaves);
-    await renderAttendance();
+        // 5. Render department-scoped data
+        // For leave balance cards, we still show the CURRENT HR user's own balances
+        const entitlements = await getLeaveEntitlements(userId);
+        const myLeaves = await API.leaves.getAll(userId);
+        renderLeaveBalances(myLeaves, entitlements);
+        
+        // For recent requests, show the department's recent requests
+        renderRecentRequests(deptLeaves);
+        
+        await renderAttendance();
 
-    lucide.createIcons();
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
     } catch (e) {
         console.error('initHRDashboard error', e);
         if (typeof UI !== 'undefined' && UI.showToast) UI.showToast('ไม่สามารถโหลดข้อมูล HR Dashboard', 'error');

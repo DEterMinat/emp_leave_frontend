@@ -169,8 +169,11 @@
             try {
                 // 1. Fetch user info for Navbar
                 const user = await API.users.getById(userId);
+                const currentEmployee = await API.employees.getByUserId(userId);
+                const hrDept = currentEmployee ? currentEmployee.departmentName : null;
+
                 document.getElementById('user-name').innerText = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.username || 'HR Manager'); 
-                document.getElementById('user-role-dept').innerText = 'HR';
+                document.getElementById('user-role-dept').innerText = hrDept ? `HR - ${hrDept}` : 'HR';
 
                 // 2. Fetch all necessary data for mapping
                 const [leaves, users, emps] = await Promise.all([
@@ -189,8 +192,8 @@
                     empDeptMap[id] = e.departmentName;
                 });
 
-                // 3. Map roles and departments to leave requests
-                allLeaves = leaves.map(l => {
+                // 3. Map roles and departments to leave requests AND filter by HR's department
+                const mappedLeaves = leaves.map(l => {
                     const reqUserId = l.userId || l.employeeId || (l.employee && (l.employee.id || l.employee.userId));
                     return {
                         ...l,
@@ -198,6 +201,12 @@
                         requesterDept: empDeptMap[reqUserId] || 'General'
                     };
                 });
+
+                if (hrDept) {
+                    allLeaves = mappedLeaves.filter(l => l.requesterDept === hrDept);
+                } else {
+                    allLeaves = mappedLeaves;
+                }
                 
                 const pending = allLeaves.filter(l => l.status.toLowerCase() === 'pending');
                 const approved = allLeaves.filter(l => l.status.toLowerCase() === 'approved');

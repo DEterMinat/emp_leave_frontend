@@ -173,10 +173,16 @@
             }
 
             try {
-                // 1. Fetch User Info
-                currentUser = await API.users.getById(userId);
-                document.getElementById('user-name').innerText = currentUser.username || 'HR Manager'; 
-                document.getElementById('user-role-dept').innerText = 'HR';
+                // 1. Fetch User Info and Department
+                const [user, emp] = await Promise.all([
+                    API.users.getById(userId),
+                    API.employees.getByUserId(userId)
+                ]);
+                currentUser = user;
+                const hrDept = emp ? emp.departmentName : null;
+
+                document.getElementById('user-name').innerText = currentUser.firstName && currentUser.lastName ? `${currentUser.firstName} ${currentUser.lastName}` : (currentUser.username || 'HR Manager'); 
+                document.getElementById('user-role-dept').innerText = hrDept ? `HR - ${hrDept}` : 'HR';
 
                 // Initial load: 'my' view
                 await loadLeaves();
@@ -214,7 +220,27 @@
                 if (currentViewMode === 'my') {
                     allLeaves = await API.leaves.getAll(userId);
                 } else {
-                    allLeaves = await API.leaves.getAll(); // Fetch all for Team Leave view
+                    const [leaves, emps] = await Promise.all([
+                        API.leaves.getAll(),
+                        API.employees.getAll(),
+                        API.employees.getByUserId(userId)
+                    ]);
+                    
+                    const hrDept = emps[2] ? emps[2].departmentName : null;
+                    const empDeptMap = {};
+                    emps[1].forEach(e => {
+                        const id = e.userId || e.id;
+                        empDeptMap[id] = e.departmentName;
+                    });
+
+                    if (hrDept) {
+                        allLeaves = leaves.filter(l => {
+                            const reqUserId = l.userId || l.employeeId || (l.employee && (l.employee.id || l.employee.userId));
+                            return empDeptMap[reqUserId] === hrDept;
+                        });
+                    } else {
+                        allLeaves = leaves;
+                    }
                 }
                 
                 // Sort descending

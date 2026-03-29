@@ -26,22 +26,36 @@ class LeaveQuotaManager {
                 return;
             }
 
-            // 1. Fetch user info for Navbar
-            const user = await API.users.getById(userId);
+            // 1. Fetch user info for Navbar and determine department
+            const [currentUser, currentEmployee, allEmps] = await Promise.all([
+                API.users.getById(userId),
+                API.employees.getByUserId(userId),
+                API.employees.getAll()
+            ]);
+            const hrDept = currentEmployee ? currentEmployee.departmentName : null;
+
             const nameEl = document.getElementById('user-name');
             const roleEl = document.getElementById('user-role-dept');
-            if (nameEl) nameEl.innerText = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'HR Management'; 
-            if (roleEl) roleEl.innerText = 'HR';
+            if (nameEl) nameEl.innerText = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.username || 'HR Management'; 
+            if (roleEl) roleEl.innerText = hrDept ? `HR - ${hrDept}` : 'HR';
 
-            // 2. Fetch all users
-            const users = await API.users.getAll();
+            // Create department lookup map
+            const empDeptMap = {};
+            allEmps.forEach(e => {
+                const id = e.userId || e.id;
+                empDeptMap[id] = e.departmentName;
+            });
+
+            // 2. Fetch all users and filter by department
+            const allUsers = await API.users.getAll();
+            const filteredUsers = hrDept 
+                ? allUsers.filter(u => empDeptMap[u.id] === hrDept)
+                : allUsers;
             
-            // 2. Fetch leave balances for all users (or generate if API fails/missing)
-            this.employees = await Promise.all(users.map(async (user) => {
+            // 3. Fetch leave balances for filtered users
+            this.employees = await Promise.all(filteredUsers.map(async (user) => {
                 let balances = [];
                 try {
-                    // Try to get actual balances if API supports it per user
-                    // API.leaves.getBalances might not exist or might need user ID
                     if (API.leaves && API.leaves.getBalances) {
                        balances = await API.leaves.getBalances(user.id);
                     }
