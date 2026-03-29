@@ -179,9 +179,13 @@
                     if (typeSelect && Array.isArray(types)) {
                         types.forEach(t => {
                             const opt = document.createElement('option');
-                            opt.value = t.id || t.leaveTypeId;
-                            opt.innerText = t.leaveTypeName;
-                            typeSelect.appendChild(opt);
+                            const id = t.id || t.leaveId || t.leaveTypeId;
+                            const name = t.name || t.leaveTypeName || 'Unknown Type';
+                            if (id) {
+                                opt.value = id;
+                                opt.innerText = name;
+                                typeSelect.appendChild(opt);
+                            }
                         });
                     }
                 } catch (e) {
