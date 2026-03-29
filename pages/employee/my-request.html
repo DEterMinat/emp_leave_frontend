@@ -179,8 +179,8 @@
                     if (typeSelect && Array.isArray(types)) {
                         types.forEach(t => {
                             const opt = document.createElement('option');
-                            const id = t.id || t.leaveId || t.leaveTypeId;
-                            const name = t.name || t.leaveTypeName || 'Unknown Type';
+                            const id = t.id || t.leaveId || t.leaveTypeId || t._id;
+                            const name = t.typeName || t.name || t.leaveTypeName || 'Unknown Type';
                             if (id) {
                                 opt.value = id;
                                 opt.innerText = name;
