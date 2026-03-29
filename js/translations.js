@@ -15,6 +15,13 @@ const TRANSLATIONS = {
         "common.reject": "ปฏิเสธ",
         "common.action": "การจัดการ",
         "common.search": "ค้นหา...",
+        "common.filter": "กรองข้อมูล",
+        "common.viewDetails": "ดูรายละเอียด",
+        "common.edit": "แก้ไข",
+        "common.allStatus": "ทุกสถานะ",
+        "common.pending": "รออนุมัติ",
+        "common.approved": "อนุมัติแล้ว",
+        "common.rejected": "ปฏิเสธแล้ว",
         
         // Navigation / Roles
         "nav.employee": "พนักงาน",
@@ -37,6 +44,10 @@ const TRANSLATIONS = {
         "login.remember": "จดจำฉัน",
         "login.forgot": "ลืมรหัสผ่าน?",
         "login.signin": "เข้าสู่ระบบ",
+        "login.checking": "กำลังตรวจสอบข้อมูล...",
+        "login.missingFields": "กรุณากรอกรหัสพนักงานและรหัสผ่าน",
+        "login.invalidCredentials": "รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง",
+        "login.serverError": "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
         
         // Dashboard
         "dash.attendance": "ลงเวลาทำงาน",
@@ -79,13 +90,58 @@ const TRANSLATIONS = {
         "modal.attachmentCondition": "(ลาป่วย 3 วันขึ้นไป ต้องแนบใบรับรองแพทย์)",
         "modal.calculating": "กำลังคำนวณ...",
         "modal.submitBtn": "ส่งคำร้องขอลางาน",
+        "modal.leaveRuleTitle": "กฎการลาประเภทนี้:",
+        "modal.selectTypeToSeeRules": "โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข",
+        "modal.uploadHint": "คลิกเพื่ออัปโหลดหรือลากไฟล์มาวาง",
+        "modal.annualRules": "<li>ขึ้นอยู่กับอายุงาน: 1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7-9 ปี = 8 วัน</li><li>สามารถทบได้ไม่เกิน 12 วัน</li><li>ต้องแจ้งล่วงหน้า 7 วัน</li>",
+        "modal.sickRules": "<li>ลาป่วยได้ 30 วัน/ปี (ได้รับค่าจ้าง)</li><li>ลาเกิน 3 วัน ต้องมีใบรับรองแพทย์</li><li>แจ้งหัวหน้างานก่อนหรือเช้าของวันที่ลา</li>",
+        "modal.personalRules": "<li>ลากิจได้ 3 วัน/ปี (ได้รับค่าจ้าง)</li><li>ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน</li><li>ต้องได้รับการอนุมัติก่อนหยุดงาน</li>",
+        "modal.ordinationRules": "<li>เฉพาะพนักงานชายที่มีอายุงาน 1 ปีขึ้นไป</li><li>ลาได้สูงสุด 30 วัน</li><li>ต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน</li><li>โปรดแนบเอกสารที่เกี่ยวข้อง</li>",
+        "modal.unpaidRules": "<li>การลางานโดยไม่รับค่าจ้าง</li><li>ลาได้สูงสุด 120 วัน/ปี</li><li>ต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน</li>",
+        "modal.leadTimeWarning": "{0} ต้องแจ้งล่วงหน้าอย่างน้อย {1} วัน",
+        "modal.sickAttachmentWarning": "ลาป่วยเกิน 3 วัน กรุณาแนบใบรับรองแพทย์",
+        "modal.dateError": "วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น",
+        "modal.missingFields": "กรุณากรอกข้อมูลให้ครบถ้วน",
+        "modal.missingDates": "กรุณาระบุวันที่เริ่มต้นและสิ้นสุด",
+        "modal.overlapError": "วันที่ทับซ้อนกับ {0} ({1} – {2}) ที่มีสถานะ \"{3}\" อยู่แล้ว",
+        "modal.attachmentRequired": "การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)",
         
         // HR / Manager
         "mgr.teamRequests": "คำร้องของทีม",
         "mgr.employee": "พนักงาน",
         "mgr.approveConfirm": "ยืนยันการอนุมัติ?",
         "mgr.rejectConfirm": "ยืนยันการปฏิเสธ?",
-        "mgr.noPending": "ไม่มีคำร้องรออนุมัติ"
+        "mgr.noPending": "ไม่มีคำร้องรออนุมัติ",
+        "mgr.pendingApprovals": "รายการรอนุมัติ",
+        "mgr.approvedRequests": "รายการที่อนุมัติแล้ว",
+        "mgr.reviewRequest": "ตรวจสอบคำร้องลา",
+        "mgr.rejectLeaveRequest": "ปฏิเสธคำขอลา",
+
+        // Navigation
+        "nav.allRequests": "คำร้องทั้งหมด",
+        "nav.leaveQuotaManagement": "จัดการโควต้าการลา",
+        "nav.leaveAnalytics": "สถิติการลา",
+
+        // Salary & Quota
+        "salary.searchPlaceholder": "ค้นหาด้วยชื่อ ตำแหน่ง หรือแผนก...",
+        "salary.sortBy": "เรียงโดย:",
+        "salary.lowSalary": "เงินเดือนน้อยไปมาก",
+        "salary.highSalary": "เงินเดือนมากไปน้อย",
+        "salary.baseSalary": "เงินเดือนพื้นฐาน",
+        "salary.totalEmployees": "พนักงานทั้งหมด",
+        "salary.contactInfo": "ข้อมูลติดต่อ",
+        "salary.leaveReport": "รายงานสรุปวันลา",
+        "salary.editEmployee": "แก้ไขข้อมูลพนักงาน",
+        "quota.manageTitle": "จัดการสิทธิวันลา",
+        "quota.manageSubtitle": "แก้ไขจำนวนวันลาคงเหลือของพนักงานแต่ละคน",
+        "quota.searchPlaceholder": "ค้นหาพนักงาน...",
+        "quota.tenure": "อายุงาน (ปี)",
+        "quota.editTitle": "แก้ไขสิทธิวันลา",
+        "common.department": "แผนก",
+        "common.position": "ตำแหน่ง",
+        "common.employeeInfo": "ข้อมูลพนักงาน",
+        "common.attachment": "ไฟล์แนบ",
+        "common.note": "หมายเหตุ:"
     },
     zh: {
         // Common
@@ -103,6 +159,18 @@ const TRANSLATIONS = {
         "common.reject": "拒绝",
         "common.action": "操作",
         "common.search": "搜索...",
+        "common.filter": "筛选",
+        "common.viewDetails": "查看详情",
+        "common.edit": "编辑",
+        "common.allStatus": "所有状态",
+        "common.pending": "待批准",
+        "common.approved": "已批准",
+        "common.rejected": "已拒绝",
+        "common.department": "部门",
+        "common.position": "职位",
+        "common.employeeInfo": "员工信息",
+        "common.attachment": "附件",
+        "common.note": "备注：",
         
         // Navigation / Roles
         "nav.employee": "员工",
@@ -114,6 +182,9 @@ const TRANSLATIONS = {
         "nav.manageRequest": "管理请求",
         "nav.leaveQuota": "请假额度",
         "nav.logout": "登出",
+        "nav.allRequests": "所有申请",
+        "nav.leaveQuotaManagement": "请假额度管理",
+        "nav.leaveAnalytics": "请假分析",
         
         // Login
         "login.title": "员工请假系统",
@@ -125,6 +196,10 @@ const TRANSLATIONS = {
         "login.remember": "记住我",
         "login.forgot": "忘记密码？",
         "login.signin": "登录",
+        "login.checking": "正在检查...",
+        "login.missingFields": "请输入员工编号和密码",
+        "login.invalidCredentials": "员工编号或密码不正确",
+        "login.serverError": "无法连接到服务器",
         
         // Dashboard
         "dash.attendance": "考勤",
@@ -167,13 +242,48 @@ const TRANSLATIONS = {
         "modal.attachmentCondition": "(病假3天以上必须附上医疗证明)",
         "modal.calculating": "计算中...",
         "modal.submitBtn": "提交申请",
+        "modal.leaveRuleTitle": "此类型的休假规则：",
+        "modal.selectTypeToSeeRules": "请选择休假类型以查看条件",
+        "modal.uploadHint": "点击上传或拖放文件",
+        "modal.annualRules": "<li>根据工龄：1-3年 = 6天，4-6年 = 7天，7-9年 = 8天</li><li>最多可结转 12 天</li><li>需提前 7 天通知</li>",
+        "modal.sickRules": "<li>每年可请病假 30 天（有薪）</li><li>请假超过 3 天需提供医疗证明</li><li>需在请假当日早晨或之前通知主管</li>",
+        "modal.personalRules": "<li>每年可请事假 3 天（有薪）</li><li>需至少提前 3 天通知</li><li>需在休假前获得批准</li>",
+        "modal.ordinationRules": "<li>仅限工龄满 1 年以上的男性员工</li><li>最多可请 30 天</li><li>需至少提前 30 天通知</li><li>请附上相关文件</li>",
+        "modal.unpaidRules": "<li>无薪休假</li><li>每年最多 120 天</li><li>需至少提前 7 天通知</li>",
+        "modal.leadTimeWarning": "{0} 需至少提前 {1} 天通知",
+        "modal.sickAttachmentWarning": "病假超过 3 天请附上医疗证明",
+        "modal.dateError": "结束日期不能早于开始日期",
+        "modal.missingFields": "请填写所有必填信息",
+        "modal.missingDates": "请指定开始和结束日期",
+        "modal.overlapError": "日期与已有的 {0} ({1} – {2}) 重叠，状态为 \"{3}\"",
+        "modal.attachmentRequired": "此休假类型需要附件（如医疗证明）",
         
         // HR / Manager
         "mgr.teamRequests": "团队请求",
         "mgr.employee": "员工",
         "mgr.approveConfirm": "确认批准？",
         "mgr.rejectConfirm": "确认拒绝？",
-        "mgr.noPending": "没有待处理的请求"
+        "mgr.noPending": "没有待处理的请求",
+        "mgr.pendingApprovals": "待审批项",
+        "mgr.approvedRequests": "已批准项",
+        "mgr.reviewRequest": "查看请假申请",
+        "mgr.rejectLeaveRequest": "拒绝请假申请",
+
+        // Salary & Quota
+        "salary.searchPlaceholder": "按姓名、职位或部门搜索...",
+        "salary.sortBy": "排序方式：",
+        "salary.lowSalary": "低薪",
+        "salary.highSalary": "高薪",
+        "salary.baseSalary": "基本工资",
+        "salary.totalEmployees": "员工总数",
+        "salary.contactInfo": "联系信息",
+        "salary.leaveReport": "请假总结报告",
+        "salary.editEmployee": "编辑员工信息",
+        "quota.manageTitle": "管理请假额度",
+        "quota.manageSubtitle": "修改每位员工的剩余请假天数",
+        "quota.searchPlaceholder": "搜索员工...",
+        "quota.tenure": "工龄 (年)",
+        "quota.editTitle": "修改请假额度"
     }
 };
 

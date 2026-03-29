@@ -42,7 +42,7 @@
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
@@ -51,7 +51,7 @@
                 </a>
                 <a href="leave-quota.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
                     <i data-lucide="calendar-check" class="w-4 h-4"></i>
-                    <span>Leave Quota Management</span>
+                    <span data-i18n="nav.leaveQuotaManagement">Leave Quota Management</span>
                 </a>
             </div>
         </div>
@@ -61,7 +61,7 @@
         <!-- Pending Section -->
         <div class="mb-12">
             <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                Pending Approvals 
+                <span data-i18n="mgr.pendingApprovals">Pending Approvals</span>
                 <span id="pending-count" class="bg-amber-100 text-amber-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="pending-list">
@@ -72,7 +72,7 @@
         <!-- Approved Section -->
         <div>
             <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                Approved Requests
+                <span data-i18n="mgr.approvedRequests">Approved Requests</span>
                 <span id="approved-count" class="bg-green-100 text-green-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="approved-list">
@@ -85,7 +85,7 @@
         <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold">Review Request</h3>
+                    <h3 class="text-xl font-bold" data-i18n="mgr.reviewRequest">Review Request</h3>
                     <button onclick="closeManageModal()" class="p-2 hover:bg-gray-100 rounded-full transition">
                         <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
                     </button>
@@ -95,10 +95,10 @@
                     </div>
 
                 <div class="grid grid-cols-2 gap-4 mt-8">
-                    <button onclick="handleDecision('Rejected')" class="py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition border border-red-100">
+                    <button onclick="handleDecision('Rejected')" class="py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-100 transition border border-red-100" data-i18n="common.reject">
                         Reject
                     </button>
-                    <button onclick="handleDecision('Approved')" class="py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition shadow-lg shadow-green-200">
+                    <button onclick="handleDecision('Approved')" class="py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition shadow-lg shadow-green-200" data-i18n="common.approve">
                         Approve
                     </button>
                 </div>
@@ -237,12 +237,14 @@
                         actionButtons = `
                             <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-50 mt-4">
                                 <button onclick="handleDecisionFromCard('${req.id}', 'Rejected')" 
-                                        class="py-2.5 px-4 rounded-xl border border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
-                                    <i data-lucide="x" class="w-4 h-4"></i> Reject
+                                        class="px-4 py-2 rounded-xl border border-red-200 text-red-500 font-bold text-[11px] hover:bg-red-50 transition flex items-center justify-center gap-2 min-w-[100px]">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i> 
+                                    <span data-i18n="common.reject">Reject</span>
                                 </button>
                                 <button onclick="handleDecisionFromCard('${req.id}', 'Approved')" 
-                                        class="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm">
-                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
+                                        class="px-4 py-2 rounded-xl bg-green-600 text-white font-bold text-[11px] hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-sm min-w-[100px]">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i> 
+                                    <span data-i18n="common.approve">Approve</span>
                                 </button>
                             </div>
                         `;
@@ -302,6 +304,7 @@
             }).join('');
             
             if (window.lucide) lucide.createIcons();
+            if (window.I18N) I18N.updateDOM();
         }
 
         let currentActiveId = null;

@@ -21,18 +21,36 @@ class ManagerAttendanceManager {
 
             // Set user profile Info in Navbar
             const currentUser = await API.users.getById(userId);
+            const currentEmployeeProfile = await API.employees.getByUserId(userId);
+            const managerDept = currentEmployeeProfile ? currentEmployeeProfile.departmentName : null;
+
             if (currentUser) {
                 const displayName = (currentUser.firstName && currentUser.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : (currentUser.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = 'Manager';
+                document.getElementById('user-role-dept').innerText = managerDept ? `Manager - ${managerDept}` : 'Manager';
             }
 
-            // 1. Fetch real attendance records for today (or all)
-            // Using API.attendance.getAll() which was confirmed via Swagger screenshots
-            this.records = await API.attendance.getAll();
+            // 1. Fetch all employees first to identify department members
+            const allEmployees = await API.employees.getAll() || [];
             
-            // 2. Process records to match the internal structure used by the table/summary
-            this.records = this.records.map(rec => {
+            // Filter employees by department
+            if (managerDept) {
+                this.employees = allEmployees.filter(emp => emp.departmentName === managerDept);
+            } else {
+                this.employees = allEmployees;
+            }
+
+            // Create a set of eligible employee IDs for filtering records
+            const eligibleEmpIds = new Set(this.employees.map(e => (e.id || e.userId).toString()));
+
+            // 2. Fetch real attendance records
+            const rawRecords = await API.attendance.getAll() || [];
+            
+            // 3. Filter and process records
+            this.records = rawRecords.filter(rec => {
+                const empId = (rec.employeeID || rec.userId || '').toString();
+                return eligibleEmpIds.has(empId) || !managerDept; // If no manager dept, show all
+            }).map(rec => {
                 const checkInDate = rec.checkInTime ? new Date(rec.checkInTime) : null;
                 const checkOutDate = rec.checkOutTime ? new Date(rec.checkOutTime) : null;
                 const attendanceDate = rec.attendanceDate ? new Date(rec.attendanceDate) : (checkInDate || new Date());
@@ -41,7 +59,10 @@ class ManagerAttendanceManager {
                     id: rec.attendanceID || rec.id,
                     name: rec.employeeName || 'Unknown Employee',
                     employeeId: rec.employeeID || 'N/A',
-                    initials: this.getInitials({ firstName: rec.employeeName.split(' ')[0], lastName: rec.employeeName.split(' ')[1] || '' }),
+                    initials: this.getInitials({ 
+                        firstName: (rec.employeeName || 'Unknown').split(' ')[0], 
+                        lastName: (rec.employeeName || '').split(' ')[1] || '' 
+                    }),
                     dateText: attendanceDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
                     rawDate: attendanceDate,
                     checkIn: checkInDate ? checkInDate.toLocaleTimeString('en-GB') : '-',
@@ -151,13 +172,23 @@ class ManagerAttendanceManager {
     }
 
     updateSummary() {
-        // Summary is based on "Today's" records (the top N records matching the newest date)
-        if (this.records.length === 0) return;
+        // 1. Calculate Total Employees (Fallback to summary of records if API.employees is empty)
+        let total = this.employees && this.employees.length > 0 ? this.employees.length : 0;
+        
+        // If we have no records, show summary of 0s but keep the Total count
+        if (this.records.length === 0) {
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statPresent').innerText = 0;
+            document.getElementById('statAbsent').innerText = total;
+            document.getElementById('statLate').innerText = 0;
+            document.getElementById('statRateText').innerText = '0.0%';
+            if (document.getElementById('statRateBar')) document.getElementById('statRateBar').style.width = '0%';
+            return;
+        }
         
         const newestDate = this.records[0].rawDate.getTime();
         const todaysRecords = this.records.filter(r => r.rawDate.getTime() === newestDate);
 
-        let total = this.employees.length; // Total employees
         let presentCount = 0;
         let lateCount = 0;
         let absentCount = 0;
@@ -169,7 +200,12 @@ class ManagerAttendanceManager {
         });
 
         // Some employees might not have a record yet for "today", they count as absent for summary purposes
-        // or we just use the generated totals.
+        // Calculate dynamic total from records if API didn't provide employees list
+        if (total === 0) {
+            const uniqueEmployees = new Set(this.records.map(r => r.employeeId));
+            total = uniqueEmployees.size;
+        }
+
         absentCount = total - presentCount - lateCount;
         if (absentCount < 0) absentCount = 0;
 

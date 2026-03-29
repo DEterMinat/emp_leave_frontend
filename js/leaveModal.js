@@ -5,7 +5,7 @@
     <div id="leaveModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
     <div id="leaveModalPanel" class="bg-white rounded-[2.5rem] shadow-2xl w-full overflow-hidden transform transition-all border border-gray-100 flex flex-col" style="max-width:900px; width:100%; max-height:90vh;" role="document" tabindex="-1">
             <div class="p-8 border-b flex justify-between items-center bg-white relative">
-                <h3 class="text-2xl font-bold text-gray-800 w-full text-center">Request Leave</h3>
+                <h3 class="text-2xl font-bold text-gray-800 w-full text-center" data-i18n="modal.title">Request Leave</h3>
                 <button id="leaveModalClose" aria-label="Close leave modal" class="absolute right-6 p-2 hover:bg-gray-100 rounded-full transition">
                     <i data-lucide="x" class="w-6 h-6 text-gray-400"></i>
                 </button>
@@ -15,9 +15,9 @@
                 <div id="leaveModalBody" class="overflow-auto p-6 sm:p-8" style="max-height:calc(90vh - 180px);">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Leave Type</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="modal.selectType">Leave Type</label>
                         <select id="leaveType" class="w-full border rounded-xl px-4 py-3 bg-white focus:ring-2 focus:ring-blue-200 outline-none text-gray-700 font-medium appearance-none">
-                            <option value="">Select Leave Type</option>
+                            <option value="" data-i18n="modal.selectType">Select Leave Type</option>
                             <option value="696a6fb10b6849bd411eedbf">Annual Leave (ลาพักผ่อน)</option>
                             <option value="69779726b7473577ad7f0233">Sick Leave (ลาป่วย)</option>
                             <option value="69783ac8111b105aeac97904">Personal Leave (ลากิจส่วนตัว)</option>
@@ -31,9 +31,9 @@
                         <div class="flex items-start gap-3">
                             <i data-lucide="info" class="w-5 h-5 text-blue-500 mt-1"></i>
                             <div>
-                                <p class="font-semibold mb-1">กฎการลาประเภทนี้:</p>
+                                <p class="font-semibold mb-1" data-i18n="modal.leaveRuleTitle">กฎการลาประเภทนี้:</p>
                                 <ul id="leaveRulesList" class="list-disc ml-5 text-sm text-blue-800 space-y-1">
-                                    <li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>
+                                    <li data-i18n="modal.selectTypeToSeeRules">โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>
                                 </ul>
                             </div>
                         </div>
@@ -41,13 +41,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="modal.startDate">Start Date</label>
                             <div class="relative">
                                 <input type="date" id="startDate" placeholder="วว/ดด/ปปปป" class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="modal.endDate">End Date</label>
                             <div class="relative">
                                 <input type="date" id="endDate" placeholder="วว/ดด/ปปปป" class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200">
                             </div>
@@ -55,15 +55,15 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
-                        <textarea id="description" rows="4" placeholder="Brief description of your leave request..." class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200 resize-none"></textarea>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="common.reason">Reason</label>
+                        <textarea id="description" rows="4" placeholder="Brief description of your leave request..." data-i18n-placeholder="modal.reasonPlaceholder" class="w-full border rounded-xl px-4 py-3 bg-white outline-none font-medium focus:ring-2 focus:ring-blue-200 resize-none"></textarea>
                     </div>
 
                     <div id="attachmentSection">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Attachments (Optional)</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="modal.attachment">Attachments (Optional)</label>
                         <div id="attachmentDrop" class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer group relative" style="min-height:120px;">
                             <i data-lucide="upload-cloud" class="mx-auto text-gray-300 mb-2 w-10 h-10 group-hover:text-blue-500 transition"></i>
-                            <p class="text-sm font-medium text-gray-600">Click to upload or drag and drop</p>
+                            <p class="text-sm font-medium text-gray-600" data-i18n="modal.uploadHint">Click to upload or drag and drop</p>
                             <p class="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, JPG, PNG (max 10MB)</p>
                             <input type="file" class="hidden" id="fileInput" multiple>
                         </div>
@@ -74,10 +74,10 @@
 
                 <div class="flex-none bg-white border-t border-gray-100 px-4 sm:px-6 py-3 sm:py-4" style="box-shadow: 0 -6px 18px rgba(15,23,42,0.04);">
                     <div class="max-w-7xl mx-auto flex items-center gap-4" style="justify-content: flex-end;">
-                        <button type="button" id="leaveCancel" class="inline-flex items-center justify-center h-12 px-5 rounded-2xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition" style="min-width:120px;">Cancel</button>
+                        <button type="button" id="leaveCancel" class="inline-flex items-center justify-center h-12 px-5 rounded-2xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition" style="min-width:120px;" data-i18n="common.cancel">Cancel</button>
                         <button type="submit" id="leaveSubmit" class="inline-flex items-center justify-center h-12 px-6 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition shadow-md" style="min-width:140px;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="-ml-1 mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
-                            Submit Request
+                            <span data-i18n="modal.submitBtn">Submit Request</span>
                         </button>
                     </div>
                 </div>
@@ -90,6 +90,7 @@
     function injectModal() {
         if (document.getElementById('leaveModal')) return; // already injected
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+        if (window.I18N) I18N.scan();
         lucide.createIcons();
         setupBehaviors();
     }
@@ -195,7 +196,7 @@
             const endEl = document.getElementById('endDate');
             if (s && e && new Date(e) < new Date(s)) {
                 endEl.classList.add('border-red-500', 'ring-1', 'ring-red-400');
-                endEl.title = 'วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น';
+                endEl.title = I18N.t('modal.dateError');
             } else {
                 endEl.classList.remove('border-red-500', 'ring-1', 'ring-red-400');
                 endEl.title = '';
@@ -224,9 +225,9 @@
                 else               endEl.classList.remove(...highlightClass);
 
                 if (!rawStartDate || !rawEndDate) {
-                    UI.showToast('กรุณาระบุวันที่เริ่มต้นและสิ้นสุด', 'error');
+                    UI.showToast(I18N.t('modal.missingDates'), 'error');
                 } else {
-                    UI.showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+                    UI.showToast(I18N.t('modal.missingFields'), 'warning');
                 }
                 return;
             }
@@ -240,7 +241,7 @@
             const startDateObj = new Date(rawStartDate);
             const endDateObj   = new Date(rawEndDate);
             if (endDateObj < startDateObj) {
-                UI.showToast('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น', 'error');
+                UI.showToast(I18N.t('modal.dateError'), 'error');
                 const endEl = document.getElementById('endDate');
                 endEl.classList.add('border-red-500', 'ring-1', 'ring-red-400');
                 endEl.focus();
@@ -313,7 +314,7 @@
                     const cType   = conflict.leaveTypeName || conflict.type || 'การลา';
                     const cStatus = conflict.status || '';
                     UI.showToast(
-                        `วันที่ทับซ้อนกับ ${cType} (${cStart} – ${cEnd}) ที่มีสถานะ "${cStatus}" อยู่แล้ว`,
+                        I18N.t('modal.overlapError').replace('{0}', cType).replace('{1}', cStart).replace('{2}', cEnd).replace('{3}', cStatus),
                         'error'
                     );
                     document.getElementById('startDate').classList.add('border-red-500', 'ring-1', 'ring-red-400');
@@ -323,7 +324,7 @@
 
                 // Check if attachment is required but missing
                 if (validation.needsAttachment && uploadedFiles.length === 0) {
-                    UI.showToast(`การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)`, 'warning');
+                    UI.showToast(I18N.t('modal.attachmentRequired'), 'warning');
                     return;
                 }
 
@@ -541,38 +542,17 @@
 
             // Find matching rules based on option text
             if (textContent.includes('annual') || textContent.includes('พักผ่อน')) {
-                rulesList.innerHTML = `
-                    <li>ขึ้นอยู่กับอายุงาน: 1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7-9 ปี = 8 วัน</li>
-                    <li>สามารถทบได้ไม่เกิน 12 วัน</li>
-                    <li>ต้องแจ้งล่วงหน้า 7 วัน</li>
-                `;
+                rulesList.innerHTML = I18N.t('modal.annualRules');
             } else if (textContent.includes('sick') || textContent.includes('ป่วย')) {
-                rulesList.innerHTML = `
-                    <li>ลาป่วยได้ 30 วัน/ปี (ได้รับค่าจ้าง)</li>
-                    <li>ลาเกิน 3 วัน ต้องมีใบรับรองแพทย์</li>
-                    <li>แจ้งหัวหน้างานก่อนหรือเช้าของวันที่ลา</li>
-                `;
+                rulesList.innerHTML = I18N.t('modal.sickRules');
             } else if (textContent.includes('personal') || textContent.includes('กิจ')) {
-                rulesList.innerHTML = `
-                    <li>ลากิจได้ 3 วัน/ปี (ได้รับค่าจ้าง)</li>
-                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน</li>
-                    <li>ต้องได้รับการอนุมัติก่อนหยุดงาน</li>
-                `;
+                rulesList.innerHTML = I18N.t('modal.personalRules');
             } else if (textContent.includes('ordination') || textContent.includes('บวช')) {
-                rulesList.innerHTML = `
-                    <li>เฉพาะพนักงานชายที่มีอายุงาน 1 ปีขึ้นไป</li>
-                    <li>ลาได้สูงสุด 30 วัน</li>
-                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน</li>
-                    <li>โปรดแนบเอกสารที่เกี่ยวข้อง</li>
-                `;
+                rulesList.innerHTML = I18N.t('modal.ordinationRules');
             } else if (textContent.includes('unpaid') || textContent.includes('ไม่รับเงิน')) {
-                rulesList.innerHTML = `
-                    <li>การลางานโดยไม่รับค่าจ้าง</li>
-                    <li>ลาได้สูงสุด 120 วัน/ปี</li>
-                    <li>ต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน</li>
-                `;
+                rulesList.innerHTML = I18N.t('modal.unpaidRules');
             } else {
-                rulesList.innerHTML = `<li>โปรดเลือกประเภทการลาเพื่อดูเงื่อนไข</li>`;
+                rulesList.innerHTML = `<li>${I18N.t('modal.selectTypeToSeeRules')}</li>`;
             }
 
             // Original code referenced string types like 'personal' etc.
@@ -599,18 +579,20 @@
                 const key = leaveTypeMap[type] || type;
                 if (key === 'sick' && diffDays > 3) {
                     document.getElementById('attachmentSection').classList.remove('hidden');
-                    UI.showToast('ลาป่วยเกิน 3 วัน กรุณาแนบใบรับรองแพทย์', 'warning');
+                    UI.showToast(I18N.t('modal.sickAttachmentWarning'), 'warning');
                 }
 
                 const leadTime = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+                const leadFmt = (key, days) => I18N.t('modal.leadTimeWarning').replace('{0}', I18N.t('type.' + key)).replace('{1}', days);
+
                 if (key === 'personal' && leadTime < 3) {
-                    UI.showToast('ลากิจส่วนตัวต้องแจ้งล่วงหน้าอย่างน้อย 3 วัน', 'warning');
+                    UI.showToast(leadFmt('personal', 3), 'warning');
                 } else if (key === 'annual' && leadTime < 7) {
-                    UI.showToast('ลาพักผ่อนต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน', 'warning');
+                    UI.showToast(leadFmt('annual', 7), 'warning');
                 } else if (key === 'ordination' && leadTime < 30) {
-                    UI.showToast('ลาอุปสมบทต้องแจ้งล่วงหน้าอย่างน้อย 30 วัน', 'warning');
+                    UI.showToast(leadFmt('ordination', 30), 'warning');
                 } else if (key === 'unpaid' && leadTime < 7) {
-                    UI.showToast('ลางานไม่รับเงินต้องแจ้งล่วงหน้าอย่างน้อย 7 วัน', 'warning');
+                    UI.showToast(leadFmt('unpaid', 7), 'warning');
                 }
             }
         }

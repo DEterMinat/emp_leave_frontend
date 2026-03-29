@@ -43,7 +43,7 @@
                 </a>    
                 <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap transition">
@@ -52,7 +52,7 @@
                 </a>
                 <a href="leave-quota.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
                     <i data-lucide="calendar-check" class="w-4 h-4"></i>
-                    <span>Leave Quota Management</span>
+                    <span data-i18n="nav.leaveQuotaManagement">Leave Quota Management</span>
                 </a>
             </div>
         </div>
@@ -64,16 +64,16 @@
         <div class="bg-white rounded-2xl shadow-sm border p-6 mb-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 gap-4">
             <div class="relative w-full sm:w-96">
                 <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3.5"></i>
-                <input type="text" id="searchInput" oninput="salaryManager.handleSearch(this.value)" placeholder="Search by name, position, or department..." class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                <input type="text" id="searchInput" oninput="salaryManager.handleSearch(this.value)" placeholder="Search by name, position, or department..." data-i18n-placeholder="salary.searchPlaceholder" class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
             </div>
             
             <div class="flex items-center space-x-2 whitespace-nowrap w-full sm:w-auto">
-                <span class="text-gray-500 text-sm">Sort by:</span>
+                <span class="text-gray-500 text-sm" data-i18n="salary.sortBy">Sort by:</span>
                 <select id="sortSelect" onchange="salaryManager.handleSort(this.value)" class="bg-white border rounded-lg px-3 py-2 text-sm outline-none focus:ring-blue-500 hover:bg-gray-50 cursor-pointer">
-                    <option value="name">Name</option>
-                    <option value="salary_asc">Low Salary</option>
-                    <option value="salary_desc">High Salary</option>
-                    <option value="department">Department</option>
+                    <option value="name" data-i18n="common.employee">Name</option>
+                    <option value="salary_asc" data-i18n="salary.lowSalary">Low Salary</option>
+                    <option value="salary_desc" data-i18n="salary.highSalary">High Salary</option>
+                    <option value="department" data-i18n="common.department">Department</option>
                 </select>
             </div>
         </div>
@@ -83,11 +83,11 @@
                 <table class="w-full min-w-[800px] text-left border-collapse">
                     <thead class="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Employee</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Position</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Department</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Base Salary</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-48">Action</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider" data-i18n="common.employee">Employee</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider" data-i18n="common.position">Position</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="common.department">Department</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right" data-i18n="salary.baseSalary">Base Salary</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-48" data-i18n="common.action">Action</th>
                         </tr>
                     </thead>
                     <tbody id="salaryTableBody" class="divide-y divide-gray-50 text-sm">
@@ -115,7 +115,7 @@
             <div class="p-6 pb-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 class="text-xl font-bold flex items-center gap-2">
                     <i data-lucide="x" class="w-5 h-5 text-gray-500 cursor-pointer hover:text-gray-800 transition" onclick="salaryManager.closeModal()"></i>
-                    Employee Information
+                    <span data-i18n="common.employeeInfo">Employee Information</span>
                 </h3>
             </div>
             
@@ -134,7 +134,7 @@
                 </div>
 
                 <!-- Contact Info -->
-                <h4 class="font-bold text-gray-800 mb-4 tracking-tight">Contact Information</h4>
+                <h4 class="font-bold text-gray-800 mb-4 tracking-tight" data-i18n="salary.contactInfo">Contact Information</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 mb-10">
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Department</label>
@@ -151,7 +151,7 @@
                 </div>
 
                 <!-- Leave Balance -->
-                <h4 class="font-bold text-gray-800 mb-4 tracking-tight">Leave Balance Report</h4>
+                <h4 class="font-bold text-gray-800 mb-4 tracking-tight" data-i18n="salary.leaveReport">Leave Balance Report</h4>
                 <div id="modalLeaveBalances" class="space-y-4">
                     <!-- Loaded dynamically via JS -->
                 </div>
@@ -174,7 +174,7 @@
                 <button onclick="salaryManager.closeEditModal()" class="mr-4 p-2 hover:bg-gray-100 rounded-full transition-all">
                     <i data-lucide="arrow-left" class="w-6 h-6 text-gray-700"></i>
                 </button>
-                <h3 class="text-xl font-bold text-gray-800">Edit Employee Information</h3>
+                <h3 class="text-xl font-bold text-gray-800" data-i18n="salary.editEmployee">Edit Employee Information</h3>
             </div>
             
             <!-- Body (Form) -->

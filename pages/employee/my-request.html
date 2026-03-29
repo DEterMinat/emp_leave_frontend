@@ -51,7 +51,7 @@
                 <h3 class="text-xl font-bold text-gray-800" data-i18n="common.leaveHistory">Leave History</h3>
                 <button class="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
                     <i data-lucide="filter" class="w-4 h-4"></i>
-                    <span>Filter</span>
+                    <span data-i18n="common.filter">Filter</span>
                 </button>
             </div>
 
@@ -60,14 +60,14 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">EMPLOYEE</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">LEAVE TYPE</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">START DATE</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">END DATE</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">DAYS</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">STATUS</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">SUBMITTED</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">APPROVED BY</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="common.employee">EMPLOYEE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="req.type">LEAVE TYPE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="modal.startDate">START DATE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="modal.endDate">END DATE</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="req.days">DAYS</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="common.status">STATUS</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="common.submit">SUBMITTED</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap" data-i18n="common.approve">APPROVED BY</th>
                         </tr>
                     </thead>
                     <tbody id="request-list" class="divide-y divide-gray-100 text-sm">
@@ -83,8 +83,8 @@
             <div class="bg-white px-6 py-5 border-t border-gray-100 flex items-center justify-between">
                 <div id="showing-text" class="text-xs text-gray-500 font-medium">Showing 0 total records</div>
                 <div class="flex space-x-2">
-                    <button id="prevBtn" onclick="changePage(-1)" disabled class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">Previous</button>
-                    <button id="nextBtn" onclick="changePage(1)" disabled class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+                    <button id="prevBtn" onclick="changePage(-1)" disabled class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" data-i18n="common.previous">Previous</button>
+                    <button id="nextBtn" onclick="changePage(1)" disabled class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition" data-i18n="common.next">Next</button>
                 </div>
             </div>
         </div>

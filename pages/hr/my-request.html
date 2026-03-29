@@ -42,7 +42,7 @@
                 </a>
                 <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
@@ -51,7 +51,7 @@
                 </a>
                 <a href="leave-quota.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
                     <i data-lucide="calendar-check" class="w-4 h-4"></i>
-                    <span>Leave Quota Management</span>
+                    <span data-i18n="nav.leaveQuotaManagement">Leave Quota Management</span>
                 </a>
             </div>
         </div>
@@ -78,10 +78,43 @@
             <!-- Header Bar -->
             <div class="p-6 border-b flex justify-between items-center">
                 <h3 class="text-xl font-bold text-gray-800" id="table-title" data-i18n="common.leaveHistory">Leave History</h3>
-                <button class="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
+                <button id="filterBtn" onclick="toggleFilterPanel()" class="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
                     <i data-lucide="filter" class="w-4 h-4"></i>
-                    <span>Filter</span>
+                    <span data-i18n="common.filter">Filter</span>
                 </button>
+            </div>
+
+            <!-- Filter Panel -->
+            <div id="filterPanel" class="hidden bg-gray-50 border-b p-6 transition-all duration-300">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" data-i18n="common.status">Status</label>
+                        <select id="filterStatus" onchange="applyFilters()" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition uppercase">
+                            <option value="all" data-i18n="common.allStatus">All Status</option>
+                            <option value="pending" data-i18n="common.pending">Pending</option>
+                            <option value="approved" data-i18n="common.approved">Approved</option>
+                            <option value="rejected" data-i18n="common.rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" data-i18n="req.type">Leave Type</label>
+                        <select id="filterType" onchange="applyFilters()" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition uppercase">
+                            <option value="all">All Types</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Annual Leave">Annual Leave</option>
+                            <option value="Personal Leave">Personal Leave</option>
+                            <option value="Ordination Leave">Ordination Leave</option>
+                            <option value="Unpaid Leave">Unpaid Leave</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Search</label>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                            <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Employee name or ID..." class="w-full bg-white border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Table -->
@@ -187,8 +220,7 @@
                 // Sort descending
                 allLeaves.sort((a, b) => new Date(b.createdAt || b.startDate) - new Date(a.createdAt || a.startDate));
                 
-                filteredLeaves = [...allLeaves];
-                renderTable();
+                applyFilters();
             } catch (err) {
                 console.error(err);
                 UI.showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลการลา', 'error');
@@ -420,13 +452,40 @@
             if (m) m.classList.add('hidden');
         }
 
-        function filterStatus(status) {
-            if (status === 'All Status') {
-                renderRequests(allLeaves);
+        function toggleFilterPanel() {
+            const panel = document.getElementById('filterPanel');
+            const btn = document.getElementById('filterBtn');
+            const isHidden = panel.classList.contains('hidden');
+            
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                btn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
             } else {
-                const filtered = allLeaves.filter(l => l.status.toLowerCase() === status.toLowerCase());
-                renderRequests(filtered);
+                panel.classList.add('hidden');
+                btn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
             }
+        }
+        
+        function applyFilters() {
+            const status = document.getElementById('filterStatus').value.toLowerCase();
+            const type = document.getElementById('filterType').value.toLowerCase();
+            const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+            
+            filteredLeaves = allLeaves.filter(req => {
+                const s = (req.status || 'pending').toString().toLowerCase();
+                const t = (req.leaveTypeName || req.type || '').toString().toLowerCase();
+                const empName = (req.employeeName || req.employeeUsername || '').toString().toLowerCase();
+                const empId = (req.employeeID || req.employeeId || '').toString().toLowerCase();
+                
+                const matchStatus = status === 'all' || s === status;
+                const matchType = type === 'all' || t.includes(type) || type.includes(t);
+                const matchSearch = !search || empName.includes(search) || empId.includes(search);
+                
+                return matchStatus && matchType && matchSearch;
+            });
+            
+            currentPage = 1;
+            renderTable();
         }
 
         // Refresh list after a leave is submitted via shared modal

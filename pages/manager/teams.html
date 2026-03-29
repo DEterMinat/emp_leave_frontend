@@ -40,7 +40,7 @@
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap">
                     <i data-lucide="file-clock" class="w-4 h-4"></i>
@@ -48,7 +48,7 @@
                 </a>
                 <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    <span>Leave Analytics</span>
+                    <span data-i18n="nav.leaveAnalytics">Leave Analytics</span>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i>
@@ -82,10 +82,43 @@
             <!-- Table Header Area -->
             <div class="p-5 flex justify-between items-center border-b border-gray-100">
                 <h3 class="font-bold text-gray-800" data-i18n="common.leaveHistory">Leave History</h3>
-                <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all flex items-center gap-2">
+                <button id="filterBtn" onclick="historyManager.toggleFilterPanel()" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all flex items-center gap-2">
                     <i data-lucide="filter" class="w-4 h-4"></i>
-                    <span>Filter</span>
+                    <span data-i18n="common.filter">Filter</span>
                 </button>
+            </div>
+
+            <!-- Filter Panel -->
+            <div id="filterPanel" class="hidden bg-gray-50 border-b p-6 transition-all duration-300">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" data-i18n="common.status">Status</label>
+                        <select id="filterStatus" onchange="historyManager.applyFilters()" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition uppercase">
+                            <option value="all" data-i18n="common.allStatus">All Status</option>
+                            <option value="pending" data-i18n="common.pending">Pending</option>
+                            <option value="approved" data-i18n="common.approved">Approved</option>
+                            <option value="rejected" data-i18n="common.rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2" data-i18n="req.type">Leave Type</label>
+                        <select id="filterType" onchange="historyManager.applyFilters()" class="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition uppercase">
+                            <option value="all">All Types</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Annual Leave">Annual Leave</option>
+                            <option value="Personal Leave">Personal Leave</option>
+                            <option value="Ordination Leave">Ordination Leave</option>
+                            <option value="Unpaid Leave">Unpaid Leave</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Search</label>
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                            <input type="text" id="filterSearch" oninput="historyManager.applyFilters()" placeholder="Employee name or ID..." class="w-full bg-white border border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Table -->

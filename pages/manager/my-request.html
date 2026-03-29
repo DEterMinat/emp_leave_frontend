@@ -38,7 +38,7 @@
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 <a href="teams.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-clock" class="w-4 h-4"></i>
@@ -46,7 +46,7 @@
                 </a>
                 <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    <span>Leave Analytics</span>
+                    <span data-i18n="nav.leaveAnalytics">Leave Analytics</span>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i>
@@ -64,7 +64,7 @@
         <!-- Pending Section -->
         <div class="mb-12">
             <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                Pending Approvals 
+                <span data-i18n="mgr.pendingApprovals">Pending Approvals</span>
                 <span id="pending-count" class="bg-amber-100 text-amber-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="pending-list">
@@ -75,7 +75,7 @@
         <!-- Approved Section -->
         <div>
             <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                Approved Requests
+                <span data-i18n="mgr.approvedRequests">Approved Requests</span>
                 <span id="approved-count" class="bg-green-100 text-green-600 px-2.5 py-0.5 rounded-full text-sm font-bold">(0)</span>
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="approved-list">
@@ -147,14 +147,34 @@
             try {
                 // 1. Fetch user info for Navbar
                 const user = await API.users.getById(userId);
+                const currentEmployeeProfile = await API.employees.getByUserId(userId);
+                const managerDept = currentEmployeeProfile ? currentEmployeeProfile.departmentName : null;
+
                 const displayName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : (user.username || 'Manager');
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = 'Manager';
+                document.getElementById('user-role-dept').innerText = managerDept ? `Manager - ${managerDept}` : 'Manager';
 
                 // 2. Fetch all leave requests (Team View for Manager)
-                // Note: Manager uses API.leaves.getAll() without userId to see the whole list,
-                // matching the HR "All Requests" behavior requested by the user.
-                allLeaves = await API.leaves.getAll(); 
+                let allLeavesFetched = await API.leaves.getAll(); 
+                if (!Array.isArray(allLeavesFetched)) allLeavesFetched = [];
+
+                // 3. Filter by department
+                if (managerDept) {
+                    const allEmps = await API.employees.getAll();
+                    const empDeptMap = {};
+                    allEmps.forEach(e => {
+                        const id = e.id || e.userId;
+                        empDeptMap[id] = e.departmentName;
+                        if (e.userId) empDeptMap[e.userId] = e.departmentName;
+                    });
+
+                    allLeaves = allLeavesFetched.filter(l => {
+                        const empId = l.employeeId || l.userId || (l.employee && (l.employee.id || l.employee.userId));
+                        return empDeptMap[empId] === managerDept;
+                    });
+                } else {
+                    allLeaves = allLeavesFetched;
+                }
                 
                 const pending = allLeaves.filter(l => l.status.toLowerCase() === 'pending');
                 const approved = allLeaves.filter(l => l.status.toLowerCase() === 'approved');
@@ -268,7 +288,7 @@
                             </div>
                             
                             <div class="mt-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50 min-h-[60px]">
-                                <p class="text-xs text-gray-400 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                <p class="text-xs text-gray-400 font-bold uppercase mb-1 flex items-center gap-1.5" data-i18n="common.reason">
                                     <i data-lucide="message-square" class="w-3 h-3"></i> Reason
                                 </p>
                                 <p class="text-gray-600 text-sm leading-relaxed line-clamp-2 italic">
@@ -291,6 +311,7 @@
             }).join('');
             
             if (window.lucide) lucide.createIcons();
+            if (window.I18N) I18N.updateDOM();
         }
 
         async function handleDecision(id, decision) {

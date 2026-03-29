@@ -94,7 +94,7 @@
             const password = passwordInput.value.trim();
 
             if (!username || !password) {
-                UI.showToast('กรุณากรอก Username และ Password ให้ครบถ้วน', 'warning');
+                UI.showToast(I18N.t('login.missingFields'), 'warning');
                 if (!username) usernameInput.focus();
                 else passwordInput.focus();
                 return;
@@ -103,7 +103,7 @@
             try {
                 loginBtn.disabled = true;
                 const originalContent = loginBtn.innerHTML;
-                loginBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Checking...</span>';
+                loginBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>${I18N.t('login.checking')}</span>`;
                 lucide.createIcons();
 
                 const response = await API.request('/api/auth/login', {
@@ -133,18 +133,15 @@
                     }, 1000);
                 }
             } catch (error) {
-                let msg = 'Username หรือ Password ไม่ถูกต้อง';
-                if (error.message.includes('401')) {
-                    msg = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
-                } else if (error.message.includes('Failed to fetch')) {
-                    msg = 'ไม่สามารถเชื่อมต่อ Server ได้';
-                }
+                const errorMsg = error.message.includes('401') ? I18N.t('login.invalidCredentials') : 
+                                 error.message.includes('Failed to fetch') ? I18N.t('login.serverError') : 
+                                 I18N.t('login.invalidCredentials');
                 
-                UI.showToast(msg, 'error');
+                UI.showToast(errorMsg, 'error');
                 console.error('Login Error:', error);
                 
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = `<span>Sign In</span><i data-lucide="arrow-right" class="w-5 h-5"></i>`;
+                loginBtn.innerHTML = `<span data-i18n="login.signin">${I18N.t('login.signin')}</span><i data-lucide="arrow-right" class="w-5 h-5"></i>`;
                 lucide.createIcons();
             }
         });

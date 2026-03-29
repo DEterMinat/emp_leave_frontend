@@ -5,6 +5,7 @@
 class ManagerLeaveHistory {
     constructor() {
         this.records = []; // All records (either User's or Team's)
+        this.filteredRecords = []; // Currently filtered set
         this.displayRecords = []; // Currently paginated set
         this.mode = 'my'; // 'my' or 'team'
         this.currentUser = null;
@@ -27,10 +28,13 @@ class ManagerLeaveHistory {
 
             // Set user profile Info in Navbar
             this.currentUser = await API.users.getById(userId);
+            const currentEmployeeProfile = await API.employees.getByUserId(userId);
+            this.managerDept = currentEmployeeProfile ? currentEmployeeProfile.departmentName : null;
+
             if (this.currentUser) {
                 const displayName = ((this.currentUser.firstName || this.currentUser.lastName)) ? `${this.currentUser.firstName || ''} ${this.currentUser.lastName || ''}`.trim() : this.currentUser.username || 'Manager';
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = 'Manager';
+                document.getElementById('user-role-dept').innerText = this.managerDept ? `Manager - ${this.managerDept}` : 'Manager';
             }
 
             // Fetch team members globally to map IDs to Names
@@ -92,7 +96,25 @@ class ManagerLeaveHistory {
                     // else fallback to gathering users manually if the environment supports it
                     try {
                         const allLeavesObj = await API.leaves.getAll(); // Attempt wide fetch
-                        this.records = Array.isArray(allLeavesObj) ? allLeavesObj : [];
+                        let fetchedRecords = Array.isArray(allLeavesObj) ? allLeavesObj : [];
+
+                        // Filter by department if in team mode
+                        if (this.mode === 'team' && this.managerDept) {
+                            const allEmps = await API.employees.getAll();
+                            const empDeptMap = {};
+                            allEmps.forEach(e => {
+                                const id = e.id || e.userId;
+                                empDeptMap[id] = e.departmentName;
+                                if (e.userId) empDeptMap[e.userId] = e.departmentName;
+                            });
+
+                            this.records = fetchedRecords.filter(l => {
+                                const empId = l.employeeId || l.userId || (l.employee && (l.employee.id || l.employee.userId));
+                                return empDeptMap[empId] === this.managerDept;
+                            });
+                        } else {
+                            this.records = fetchedRecords;
+                        }
                     } catch (e) {
                          // Some backends restrict getAll(). If so, fetch parallel for known team members
                          // We will mock team data by injecting mock entries for demonstration
@@ -112,7 +134,7 @@ class ManagerLeaveHistory {
             // Sort newest first based on startDate conceptually for history
             this.records.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
-            this.updatePagination();
+            this.applyFilters();
 
         } catch (e) {
             console.error('Data load error', e);
@@ -160,7 +182,7 @@ class ManagerLeaveHistory {
     }
 
     changePage(offset) {
-        let maxPages = Math.ceil(this.records.length / this.itemsPerPage);
+        let maxPages = Math.ceil(this.filteredRecords.length / this.itemsPerPage);
         if (maxPages === 0) maxPages = 1;
 
         let next = this.currentPage + offset;
@@ -174,7 +196,7 @@ class ManagerLeaveHistory {
     }
 
     updatePagination() {
-        const total = this.records.length;
+        const total = this.filteredRecords.length;
         document.getElementById('paginationText').innerText = `Showing ${total} total records${total === 0 ? '' : ` (Page ${this.currentPage})`}`;
 
         let maxPages = Math.ceil(total / this.itemsPerPage);
@@ -184,7 +206,7 @@ class ManagerLeaveHistory {
 
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
         const endIndex = startIndex + this.itemsPerPage;
-        this.displayRecords = this.records.slice(startIndex, endIndex);
+        this.displayRecords = this.filteredRecords.slice(startIndex, endIndex);
 
         this.renderTable();
     }
@@ -277,7 +299,7 @@ class ManagerLeaveHistory {
     }
 
     renderTable() {
-        if (this.records.length === 0) {
+        if (this.filteredRecords.length === 0) {
             this.showEmpty();
             return;
         }
@@ -343,6 +365,52 @@ class ManagerLeaveHistory {
         if (window.lucide) {
             lucide.createIcons();
         }
+        if (window.I18N) {
+            I18N.updateDOM();
+        }
+    }
+
+    toggleFilterPanel() {
+        const panel = document.getElementById('filterPanel');
+        const btn = document.getElementById('filterBtn');
+        if (!panel || !btn) return;
+
+        const isHidden = panel.classList.contains('hidden');
+        if (isHidden) {
+            panel.classList.remove('hidden');
+            btn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
+        } else {
+            panel.classList.add('hidden');
+            btn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
+        }
+    }
+
+    applyFilters() {
+        const status = document.getElementById('filterStatus').value.toLowerCase();
+        const type = document.getElementById('filterType').value.toLowerCase();
+        const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+
+        this.filteredRecords = this.records.filter(req => {
+            const s = (req.status || 'pending').toString().toLowerCase();
+            const t = (req.type || req.leaveTypeName || '').toString().toLowerCase();
+            
+            // Employee search
+            let empMatch = true;
+            if (search) {
+                const u = this.allUsersMap[req.employeeId || req.userId];
+                const empName = u ? `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase() : '';
+                const empId = (req.employeeId || '').toString().toLowerCase();
+                empMatch = empName.includes(search) || empId.includes(search);
+            }
+
+            const matchStatus = status === 'all' || s === status;
+            const matchType = type === 'all' || t.includes(type) || type.includes(t);
+
+            return matchStatus && matchType && empMatch;
+        });
+
+        this.currentPage = 1;
+        this.updatePagination();
     }
 }
 

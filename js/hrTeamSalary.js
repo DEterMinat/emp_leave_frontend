@@ -202,21 +202,22 @@ class TeamSalaryManager {
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center space-x-2">
-                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm">
-                            <i data-lucide="eye" class="w-4 h-4"></i>
-                            <span>View Details</span>
+                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-[11px] font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap min-w-[120px]">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            <span data-i18n="common.viewDetails">View Details</span>
                         </button>
-                        <button onclick="salaryManager.editSalary('${emp.id}')" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                        <button onclick="salaryManager.editSalary('${emp.id}')" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-xl text-[11px] font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap min-w-[120px]">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            <span>Edit</span>
+                            <span data-i18n="common.edit">Edit</span>
                         </button>
                     </div>
                 </td>
             </tr>
         `).join('');
 
-        // Re-init icons 
+        // Re-init icons and translations
         if (window.lucide) lucide.createIcons();
+        if (window.I18N) I18N.updateDOM();
 
         // Update counters
         totalCount.innerText = this.employees.length;

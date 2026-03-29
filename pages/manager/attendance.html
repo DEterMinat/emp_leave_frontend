@@ -39,7 +39,7 @@
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 <a href="teams.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-clock" class="w-4 h-4"></i>
@@ -47,7 +47,7 @@
                 </a>
                 <a href="statistics.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                    <span>Leave Analytics</span>
+                    <span data-i18n="nav.leaveAnalytics">Leave Analytics</span>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i>
@@ -150,13 +150,13 @@
                     <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="bg-gray-50 border-b border-gray-100">
                             <tr>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">DATE</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">EMPLOYEE</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">CHECK IN</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">CHECK OUT</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">WORK HOURS</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center w-32">STATUS</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">NOTES</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest" data-i18n="req.date">DATE</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest" data-i18n="common.employee">EMPLOYEE</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center" data-i18n="dash.checkIn">CHECK IN</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center" data-i18n="dash.checkOut">CHECK OUT</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center" data-i18n="dash.totalHours">WORK HOURS</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center w-32" data-i18n="common.status">STATUS</th>
+                                <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest" data-i18n="common.reason">NOTES</th>
                             </tr>
                         </thead>
                         <tbody id="attendanceTableBody" class="divide-y divide-gray-100 text-sm">

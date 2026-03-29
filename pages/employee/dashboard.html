@@ -6,6 +6,8 @@
     <title>Dashboard - Leave System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../../js/translations.js"></script>
+    <script src="../../js/i18n.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
 
@@ -460,7 +462,7 @@
             const actionIcon = document.getElementById('attendance-action-icon');
 
             if (!userId) {
-                statusBadge.innerText = 'Not signed in';
+                statusBadge.innerText = I18N.t('dash.notCheckedIn');
                 actionBtn.disabled = true;
                 return;
             }
@@ -502,10 +504,10 @@
                 }
 
                 if (!rec || (!hasCheckIn && !hasCheckOut)) {
-                    statusBadge.innerText = 'Not checked in';
+                    statusBadge.innerText = I18N.t('dash.notCheckedIn');
                     statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-gray-200 text-gray-700 rounded-full';
                     
-                    actionText.innerText = 'Check In';
+                    actionText.innerText = I18N.t('dash.checkIn');
                     actionIcon.setAttribute('data-lucide', 'log-in');
                     actionBtn.className = 'mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 transition-colors';
                     actionBtn.disabled = false;
@@ -521,19 +523,19 @@
                         } else UI.showToast('ไม่สามารถเช็คอิน: ' + (res.error && res.error.message ? res.error.message : ''), 'error');
                     };
                 } else if (hasCheckOut) {
-                    statusBadge.innerText = 'Completed';
+                    statusBadge.innerText = I18N.t('dash.completed');
                     statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-green-100 text-green-700 rounded-full';
                     
-                    actionText.innerText = 'Attendance Completed';
+                    actionText.innerText = I18N.t('dash.attendanceCompleted');
                     actionIcon.setAttribute('data-lucide', 'check-circle');
                     actionBtn.className = 'mt-6 w-full bg-gray-100 text-gray-400 py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 cursor-not-allowed transition-colors';
                     actionBtn.onclick = () => {};
                     actionBtn.disabled = true;
                 } else {
-                    statusBadge.innerText = 'Checked In';
+                    statusBadge.innerText = I18N.t('dash.checkedIn');
                     statusBadge.className = 'text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-700 rounded-full';
                     
-                    actionText.innerText = 'Check Out';
+                    actionText.innerText = I18N.t('dash.checkOut');
                     actionIcon.setAttribute('data-lucide', 'log-out');
                     actionBtn.className = 'mt-6 w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 transition-colors';
                     actionBtn.disabled = false;

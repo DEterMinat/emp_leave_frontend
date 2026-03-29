@@ -205,9 +205,9 @@ class LeaveQuotaManager {
                     ${this.formatQuota(emp.quotas['UNPAID'].used, emp.quotas['UNPAID'].total)}
                 </td>
                 <td class="px-6 py-4 text-center">
-                    <button onclick="quotaManager.editQuota('${emp.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-2 rounded-lg transition flex items-center justify-center mx-auto gap-1 text-xs font-bold">
+                    <button onclick="quotaManager.editQuota('${emp.id}')" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-xl text-[11px] font-bold tracking-wide transition-all flex items-center justify-center mx-auto gap-2 shadow-sm whitespace-nowrap min-w-[120px]">
                         <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        <span>แก้ไข</span>
+                        <span data-i18n="common.edit">แก้ไข</span>
                     </button>
                 </td>
             </tr>
@@ -215,6 +215,9 @@ class LeaveQuotaManager {
 
         if (window.lucide) {
             lucide.createIcons();
+        }
+        if (window.I18N) {
+            I18N.updateDOM();
         }
     }
 

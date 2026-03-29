@@ -33,7 +33,7 @@
                 </a>
                 <a href="my-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 <a href="teams.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="file-clock" class="w-4 h-4"></i>
@@ -121,15 +121,37 @@
             try {
                 // 1. ดึงข้อมูล Manager แสดงใน Navbar
                 const user = await API.users.getById(userId);
+                const currentEmployeeProfile = await API.employees.getByUserId(userId);
+                const managerDept = currentEmployeeProfile ? currentEmployeeProfile.departmentName : null;
+
                 const displayName = ((user.firstName || user.lastName)) ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : (user.username || 'Manager');
                 document.querySelector('h1').innerText = displayName;
-                document.querySelector('.text-sm.text-gray-500').innerText = 'Manager';
+                document.querySelector('.text-sm.text-gray-500').innerText = managerDept ? `Manager - ${managerDept}` : 'Manager';
 
                 // 2. ดึงข้อมูลใบลาทั้งหมดของทีม
-                allLeaves = await API.leaves.getAll();
-                if (!Array.isArray(allLeaves)) allLeaves = [];
+                let allLeavesFetched = await API.leaves.getAll();
+                if (!Array.isArray(allLeavesFetched)) allLeavesFetched = [];
+
+                // 3. กรองตามแผนกของ Manager
+                if (managerDept) {
+                    // Fetch all employees to build department map
+                    const allEmps = await API.employees.getAll();
+                    const empDeptMap = {};
+                    allEmps.forEach(e => {
+                        const id = e.id || e.userId;
+                        empDeptMap[id] = e.departmentName;
+                        if (e.userId) empDeptMap[e.userId] = e.departmentName;
+                    });
+
+                    allLeaves = allLeavesFetched.filter(l => {
+                        const empId = l.employeeId || l.userId || (l.employee && (l.employee.id || l.employee.userId));
+                        return empDeptMap[empId] === managerDept;
+                    });
+                } else {
+                    allLeaves = allLeavesFetched;
+                }
                 
-                // 3. ตั้งค่า Event Listeners สำหรับปุ่ม
+                // 4. ตั้งค่า Event Listeners สำหรับปุ่ม
                 setupPeriodListeners();
 
                 // 4. เริ่มต้นแสดงผล (Default: Month)

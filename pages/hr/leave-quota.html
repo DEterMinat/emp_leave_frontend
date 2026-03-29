@@ -43,7 +43,7 @@
                 </a>    
                 <a href="manage-request.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 transition whitespace-nowrap">
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                    <span>All Requests</span>
+                    <span data-i18n="nav.allRequests">All Requests</span>
                 </a>
                 </a>
                 <a href="team-salary.html" class="border-b-2 border-transparent px-1 py-4 text-gray-500 hover:text-gray-700 flex items-center space-x-2 whitespace-nowrap transition">
@@ -52,25 +52,25 @@
                 </a>
                 <a href="#" class="border-b-2 border-blue-600 px-1 py-4 text-blue-600 font-medium flex items-center space-x-2 whitespace-nowrap transition">
                     <i data-lucide="calendar-check" class="w-4 h-4"></i>
-                    <span>Leave Quota Management</span>
+                    <span data-i18n="nav.leaveQuotaManagement">Leave Quota Management</span>
                 </a>
             </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 tracking-tight">Leave Quota Management</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 tracking-tight" data-i18n="nav.leaveQuotaManagement">Leave Quota Management</h2>
 
         <div class="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6">
             <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
-                    <h3 class="font-bold text-lg text-gray-800">จัดการสิทธิวันลา</h3>
-                    <p class="text-sm text-gray-500 mt-1">แก้ไขจำนวนวันลาคงเหลือของพนักงานแต่ละคน</p>
+                    <h3 class="font-bold text-lg text-gray-800" data-i18n="quota.manageTitle">จัดการสิทธิวันลา</h3>
+                    <p class="text-sm text-gray-500 mt-1" data-i18n="quota.manageSubtitle">แก้ไขจำนวนวันลาคงเหลือของพนักงานแต่ละคน</p>
                 </div>
                 
                 <div class="relative w-full md:w-80">
                     <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-2.5"></i>
-                    <input type="text" id="searchInput" oninput="quotaManager.handleSearch(this.value)" placeholder="Search employee..." class="w-full pl-9 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                    <input type="text" id="searchInput" oninput="quotaManager.handleSearch(this.value)" placeholder="Search employee..." data-i18n-placeholder="quota.searchPlaceholder" class="w-full pl-9 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
                 </div>
             </div>
 
@@ -78,15 +78,15 @@
                 <table class="w-full min-w-[1000px] text-left border-collapse">
                     <thead class="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">พนักงาน</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">แผนก</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">อายุงาน (ปี)</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาพักร้อน</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาป่วย</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลากิจ</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ลาบวช</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">ไม่รับเงิน</th>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">จัดการ</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider" data-i18n="common.employee">พนักงาน</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="common.department">แผนก</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="quota.tenure">อายุงาน (ปี)</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="leave.annual">ลาพักร้อน</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="leave.sick">ลาป่วย</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="leave.personal">ลากิจ</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="leave.ordination">ลาบวช</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="leave.unpaid">ไม่รับเงิน</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center" data-i18n="common.action">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="quotaTableBody" class="divide-y divide-gray-50 text-sm">
@@ -102,7 +102,7 @@
         <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex items-start space-x-3">
             <i data-lucide="info" class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
             <div class="text-sm text-blue-800">
-                <p class="font-bold mb-2">หมายเหตุ:</p>
+                <p class="font-bold mb-2" data-i18n="common.note">หมายเหตุ:</p>
                 <ul class="list-disc list-inside space-y-1 ml-1 text-blue-700">
                     <li>คลิกปุ่ม "แก้ไข" เพื่อจัดการสิทธิวันลาของพนักงานรายบุคคล</li>
                     <li>ตัวเลขแสดงในรูปแบบ จำนวนที่ใช้ไปแล้ว / สิทธิทั้งหมด (เช่น 4/6 คือ ใช้ไปแล้ว 4 วัน จากทั้งหมด 6 วัน)</li>
@@ -118,7 +118,7 @@
             <!-- Header -->
             <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-start bg-white sticky top-0 z-10 shrink-0">
                 <div>
-                    <h3 class="text-xl font-bold text-gray-800">แก้ไขสิทธิวันลา</h3>
+                    <h3 class="text-xl font-bold text-gray-800" data-i18n="quota.editTitle">แก้ไขสิทธิวันลา</h3>
                     <p id="modalEmpName" class="text-sm text-gray-600 mt-1 font-medium">John Doe - Software Developer</p>
                     <p id="modalEmpTenure" class="text-xs text-gray-500">อายุงาน: 4.0 ปี</p>
                 </div>

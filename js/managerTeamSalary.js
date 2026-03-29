@@ -21,14 +21,22 @@ class ManagerTeamSalaryManager {
 
             // Set user profile Info in Navbar
             const currentUser = await API.users.getById(userId);
+            const currentEmployee = await API.employees.getByUserId(userId);
+            const managerDept = currentEmployee ? currentEmployee.departmentName : null;
+
             if (currentUser) {
                 const displayName = ((currentUser.firstName || currentUser.lastName)) ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : currentUser.username || 'Manager';
                 document.getElementById('user-name').innerText = displayName;
-                document.getElementById('user-role-dept').innerText = 'Manager';
+                document.getElementById('user-role-dept').innerText = managerDept ? `Manager - ${managerDept}` : 'Manager';
             }
 
             // Fetch all employees from the new endpoint
-            const employeesData = await API.employees.getAll();
+            let employeesData = await API.employees.getAll();
+            
+            // Filter by manager's department
+            if (managerDept) {
+                employeesData = employeesData.filter(emp => emp.departmentName === managerDept);
+            }
             
             // Map the real employee data
             this.employees = employeesData.map(emp => {
@@ -189,8 +197,9 @@ class ManagerTeamSalaryManager {
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center">
-                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-5 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md">
-                            <span>View Details</span>
+                        <button onclick="salaryManager.viewDetails('${emp.id}')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-[11px] font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap min-w-[120px]">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            <span data-i18n="common.viewDetails">View Details</span>
                         </button>
                     </div>
                 </td>
@@ -199,6 +208,9 @@ class ManagerTeamSalaryManager {
 
         if (window.lucide) {
             lucide.createIcons();
+        }
+        if (window.I18N) {
+            I18N.updateDOM();
         }
 
         totalCount.innerText = this.employees.length;
