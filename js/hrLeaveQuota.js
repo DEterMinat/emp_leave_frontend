@@ -13,8 +13,8 @@ class LeaveQuotaManager {
             'Annual Leave': { base: 6, max: 8 }, // Will adjust by tenure
             'Sick Leave': { base: 30 },
             'Personal Leave': { base: 3 },
-            'Ordination Leave': { base: 30 },
-            'Unpaid Leave': { base: 120 }
+            'Ordination Leave': { base: 15 },
+            'Unpaid Leave': { base: 30 }
         };
     }
 
@@ -253,8 +253,8 @@ class LeaveQuotaManager {
             { key: 'ลาพักร้อน', title: 'ลาพักผ่อน (Annual Leave)', subtitle: '1-3 ปี = 6 วัน, 4-6 ปี = 7 วัน, 7+ ปี = 8 วัน', color: 'blue' },
             { key: 'ลาป่วย', title: 'ลาป่วย (Sick Leave)', subtitle: 'สูงสุด 30 วัน', color: 'red' },
             { key: 'ลากิจ', title: 'ลากิจ (Personal Leave)', subtitle: 'สูงสุด 3 วัน', color: 'purple' },
-            { key: 'ลาอุปสมบท', title: 'ลาอุปสมบท (Ordination Leave)', subtitle: 'สูงสุด 30 วัน', color: 'orange' },
-            { key: 'UNPAID', title: 'ลางานไม่รับเงิน (Unpaid Leave)', subtitle: 'สูงสุด 120 วัน', color: 'gray' }
+            { key: 'ลาอุปสมบท', title: 'ลาอุปสมบท (Ordination Leave)', subtitle: 'สูงสุด 15 วัน', color: 'orange' },
+            { key: 'UNPAID', title: 'ลางานไม่รับเงิน (Unpaid Leave)', subtitle: 'สูงสุด 30 วัน', color: 'gray' }
         ];
 
         const colorMap = {
@@ -339,34 +339,77 @@ class LeaveQuotaManager {
         document.body.style.overflow = '';
     }
 
-    saveQuotaChanges() {
+    async saveQuotaChanges() {
         if (!this.currentEditId) return;
         
         const emp = this.employees.find(e => e.id == this.currentEditId);
         if (!emp) return;
 
-        const keys = ['ลาพักร้อน', 'ลาป่วย', 'ลากิจ'];
-        
-        keys.forEach(key => {
-            const availInput = document.getElementById(`input_avail_${key}`);
-            const totalInput = document.getElementById(`input_total_${key}`);
-            
-            const available = parseFloat(availInput.value) || 0;
-            const total = parseFloat(totalInput.value) || 0;
-            let used = total - available;
-            if (used < 0) used = 0;
-            
-            emp.quotas[key].total = total;
-            emp.quotas[key].used = used;
-        });
+        // Collect all 5 types now
+        const keys = ['ลาพักร้อน', 'ลาป่วย', 'ลากิจ', 'ลาอุปสมบท', 'UNPAID'];
+        const saveBtn = document.querySelector('button[onclick="quotaManager.saveQuotaChanges()"]');
+        const originalText = saveBtn ? saveBtn.innerHTML : 'บันทึกการเปลี่ยนแปลง';
 
-        this.closeModal();
-        this.renderTable(); // re-render the filtered view
-        
-        if (typeof UI !== 'undefined') {
-            UI.showToast('บันทึกสิทธิวันลาเรียบร้อยแล้ว', 'success');
-        } else {
-            UI.showToast('Saved successfully.', 'success');
+        try {
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> บันทึกข้อมูล...';
+                if (window.lucide) lucide.createIcons();
+            }
+
+            // Type mapping for API payload
+            const typeIdMap = {
+                'ลาพักร้อน': 1,
+                'ลาป่วย': 2,
+                'ลากิจ': 3,
+                'ลาอุปสมบท': 4,
+                'UNPAID': 5
+            };
+
+            for (const key of keys) {
+                const availInput = document.getElementById(`input_avail_${key}`);
+                const totalInput = document.getElementById(`input_total_${key}`);
+                
+                if (!availInput || !totalInput) continue;
+
+                const available = parseFloat(availInput.value) || 0;
+                const total = parseFloat(totalInput.value) || 0;
+                let used = total - available;
+                if (used < 0) used = 0;
+                
+                // Update local object
+                if (emp.quotas[key]) {
+                    emp.quotas[key].total = total;
+                    emp.quotas[key].used = used;
+                }
+
+                // API call to persist
+                // backend expects { "userId": 1, "leaveTypeId": 1, "totalDays": 6, "year": 2024 }
+                await API.leaveBalances.create({
+                    userId: emp.id,
+                    leaveTypeId: typeIdMap[key],
+                    totalDays: total,
+                    year: new Date().getFullYear()
+                });
+            }
+
+            this.closeModal();
+            this.renderTable(); 
+            
+            if (typeof UI !== 'undefined' && UI.showToast) {
+                UI.showToast('บันทึกสิทธิวันลาเรียบร้อยแล้ว', 'success');
+            }
+        } catch (error) {
+            console.error('Failed to save quota:', error);
+            if (typeof UI !== 'undefined' && UI.showToast) {
+                UI.showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลโควต้า', 'error');
+            }
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                if (window.lucide) lucide.createIcons();
+            }
         }
     }
 }

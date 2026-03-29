@@ -20,8 +20,8 @@ const LEAVE_RULES = {
     annual:     { key: 'annual',     advanceDays: 7,  maxDays: 6,   requireAttachment: false, label: 'ลาพักผ่อน' },
     sick:       { key: 'sick',       advanceDays: 0,  maxDays: 30,  requireAttachmentAfter: 3, label: 'ลาป่วย' },
     personal:   { key: 'personal',   advanceDays: 3,  maxDays: 3,   requireAttachment: true,  label: 'ลากิจส่วนตัว' },
-    ordination: { key: 'ordination', advanceDays: 30, maxDays: 30,  requireAttachment: true,  label: 'ลาอุปสมบท' },
-    unpaid:     { key: 'unpaid',     advanceDays: 7,  maxDays: 120, requireAttachment: false, label: 'ลางานไม่รับเงิน' }
+    ordination: { key: 'ordination', advanceDays: 30, maxDays: 15,  requireAttachment: true,  label: 'ลาอุปสมบท' },
+    unpaid:     { key: 'unpaid',     advanceDays: 7,  maxDays: 30,  requireAttachment: false, label: 'ลางานไม่รับเงิน' }
 };
 
 // ============================================
