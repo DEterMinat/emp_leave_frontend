@@ -81,31 +81,49 @@ const I18N = {
 
         containers.forEach(container => {
             container.innerHTML = `
-                <div class="relative inline-block text-left group">
+                <div class="relative inline-block text-left">
                     <button type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none" id="lang-menu-button">
                         <span id="current-lang-flag" class="mr-2">${this.currentLang === 'th' ? '🇹🇭' : '🇨🇳'}</span>
                         <span id="current-lang-text">${this.currentLang === 'th' ? 'TH' : 'ZH'}</span>
-                        <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <svg class="-mr-1 ml-2 h-5 w-5 transition-transform duration-200" id="lang-menu-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>
                     </button>
 
-                    <!-- Dropdown menu wrapper with transparent padding gap to maintain hover -->
-                    <div class="origin-top-right absolute right-0 pt-2 w-32 hidden group-hover:block z-50">
-                        <div class="rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 transition-all duration-200">
-                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="lang-menu-button">
-                                <button onclick="I18N.setLanguage('th')" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
-                                    <span class="mr-3">🇹🇭</span> ภาษาไทย
-                                </button>
-                                <button onclick="I18N.setLanguage('zh')" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
-                                    <span class="mr-3">🇨🇳</span> 中文
-                                </button>
-                            </div>
+                    <div id="lang-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 transition-all duration-200 hidden z-50">
+                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="lang-menu-button">
+                            <button onclick="I18N.handleLangSelect('th')" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
+                                <span class="mr-3">🇹🇭</span> ภาษาไทย
+                            </button>
+                            <button onclick="I18N.handleLangSelect('zh')" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900" role="menuitem">
+                                <span class="mr-3">🇨🇳</span> 中文
+                            </button>
                         </div>
                     </div>
                 </div>
             `;
+            
+            const button = container.querySelector('#lang-menu-button');
+            const menu = container.querySelector('#lang-dropdown-menu');
+            const arrow = container.querySelector('#lang-menu-arrow');
+            
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+                if (arrow) arrow.classList.toggle('rotate-180');
+            });
+            
+            document.addEventListener('click', () => {
+                menu.classList.add('hidden');
+                if (arrow) arrow.classList.remove('rotate-180');
+            });
         });
+    },
+
+    handleLangSelect: function(lang) {
+        this.setLanguage(lang);
+        const menu = document.getElementById('lang-dropdown-menu');
+        if (menu) menu.classList.add('hidden');
     },
 
     updateSwitcherUI: function() {

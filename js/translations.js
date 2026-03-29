@@ -37,16 +37,16 @@ const TRANSLATIONS = {
         // Login
         "login.title": "Employee Leave System",
         "login.subtitle": "ระบบจัดการลางานพนักงาน",
-        "login.empId": "รหัสพนักงาน",
-        "login.empIdPlaceholder": "รหัสพนักงาน",
+        "login.empId": "ชื่อผู้ใช้",
+        "login.empIdPlaceholder": "ชื่อผู้ใช้",
         "login.password": "รหัสผ่าน",
         "login.passwordPlaceholder": "รหัสผ่าน",
         "login.remember": "จดจำฉัน",
         "login.forgot": "ลืมรหัสผ่าน?",
         "login.signin": "เข้าสู่ระบบ",
         "login.checking": "กำลังตรวจสอบข้อมูล...",
-        "login.missingFields": "กรุณากรอกรหัสพนักงานและรหัสผ่าน",
-        "login.invalidCredentials": "รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง",
+        "login.missingFields": "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน",
+        "login.invalidCredentials": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
         "login.serverError": "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
         
         // Dashboard
@@ -194,16 +194,16 @@ const TRANSLATIONS = {
         // Login
         "login.title": "员工请假系统",
         "login.subtitle": "员工请假管理系统",
-        "login.empId": "员工编号",
-        "login.empIdPlaceholder": "员工编号",
+        "login.empId": "用户名",
+        "login.empIdPlaceholder": "用户名",
         "login.password": "密码",
         "login.passwordPlaceholder": "密码",
         "login.remember": "记住我",
         "login.forgot": "忘记密码？",
         "login.signin": "登录",
         "login.checking": "正在检查...",
-        "login.missingFields": "请输入员工编号和密码",
-        "login.invalidCredentials": "员工编号或密码不正确",
+        "login.missingFields": "请输入用户名和密码",
+        "login.invalidCredentials": "用户名或密码不正确",
         "login.serverError": "无法连接到服务器",
         
         // Dashboard
