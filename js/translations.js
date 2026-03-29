@@ -105,6 +105,11 @@ const TRANSLATIONS = {
         "modal.missingDates": "กรุณาระบุวันที่เริ่มต้นและสิ้นสุด",
         "modal.overlapError": "วันที่ทับซ้อนกับ {0} ({1} – {2}) ที่มีสถานะ \"{3}\" อยู่แล้ว",
         "modal.attachmentRequired": "การลานี้จำเป็นต้องแนบไฟล์ประกอบ (เช่น ใบรับรองแพทย์)",
+        "type.annual": "ลาพักผ่อน",
+        "type.sick": "ลาป่วย",
+        "type.personal": "ลากิจ",
+        "type.ordination": "ลาอุปสมบท",
+        "type.unpaid": "ลางานไม่รับเงิน",
         
         // HR / Manager
         "mgr.teamRequests": "คำร้องของทีม",
@@ -257,6 +262,11 @@ const TRANSLATIONS = {
         "modal.missingDates": "请指定开始和结束日期",
         "modal.overlapError": "日期与已有的 {0} ({1} – {2}) 重叠，状态为 \"{3}\"",
         "modal.attachmentRequired": "此休假类型需要附件（如医疗证明）",
+        "type.annual": "年假",
+        "type.sick": "病假",
+        "type.personal": "事假",
+        "type.ordination": "出家假",
+        "type.unpaid": "无薪假",
         
         // HR / Manager
         "mgr.teamRequests": "团队请求",
