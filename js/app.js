@@ -150,11 +150,11 @@ const LeaveRequest = {
      */
     getAnnualQuota(createdAt) {
         const tenureYears = this.calculateTenure(createdAt);
-        // Show the base quota for UI consistency, even if tenure < 1. 
-        // Actual validation blocks the request if tenure < 1.
+        // Show 0 if tenure < 1 as per business rules.
         if (tenureYears >= 7) return 8;
         if (tenureYears >= 4) return 7;
-        return 6;
+        if (tenureYears >= 1) return 6;
+        return 0;
     },
 
     /**
@@ -182,7 +182,7 @@ const LeaveRequest = {
             
             // Tenure at year Y = Year - Joining Year
             const tenureInYear = Math.max(0, year - joiningYear);
-            let baseY = (tenureInYear >= 7) ? 8 : (tenureInYear >= 4) ? 7 : 6;
+            let baseY = (tenureInYear >= 7) ? 8 : (tenureInYear >= 4) ? 7 : (tenureInYear >= 1) ? 6 : 0;
 
             // Total available for THIS year
             totalThisYear = Math.min(12, baseY + carryOver);
@@ -258,8 +258,8 @@ const LeaveRequest = {
             if (employee?.gender === 'Female' || employee?.gender === 'หญิง') {
                 return { valid: false, message: 'ลาอุปสมบทสงวนสิทธิ์เฉพาะพนักงานชาย' };
             }
-            if (tenureYears < 1) {
-                return { valid: false, message: 'การลาอุปสมบทต้องมีอายุงานอย่างน้อย 1 ปี' };
+            if (tenureYears < 3) {
+                return { valid: false, message: 'การลาอุปสมบทต้องมีอายุงานอย่างน้อย 3 ปี' };
             }
         }
 
