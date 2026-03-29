@@ -47,12 +47,46 @@
         
         <div class="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
             <!-- Header Bar -->
-            <div class="p-6 border-b flex justify-between items-center">
+            <div class="p-6 border-b flex justify-between items-center bg-white relative z-10">
                 <h3 class="text-xl font-bold text-gray-800" data-i18n="common.leaveHistory">Leave History</h3>
-                <button class="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
+                <button id="filterBtn" onclick="toggleFilterPanel()" class="flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700 shadow-sm active:scale-95">
                     <i data-lucide="filter" class="w-4 h-4"></i>
                     <span data-i18n="common.filter">Filter</span>
                 </button>
+            </div>
+
+            <!-- Filter Panel -->
+            <div id="filterPanel" class="hidden bg-gray-50/80 border-b p-6 transition-all duration-300 backdrop-blur-sm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" data-i18n="common.status">Status</label>
+                        <select id="filterStatus" onchange="applyFilters()" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-blue-100 outline-none transition appearance-none cursor-pointer">
+                            <option value="all" data-i18n="common.allStatus">All Status</option>
+                            <option value="pending" data-i18n="common.pending">Pending</option>
+                            <option value="approved" data-i18n="common.approved">Approved</option>
+                            <option value="rejected" data-i18n="common.rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <!-- Type Filter -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" data-i18n="req.type">Leave Type</label>
+                        <select id="filterType" onchange="applyFilters()" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-blue-100 outline-none transition appearance-none cursor-pointer">
+                            <option value="all" data-i18n="common.allTypes">All Types</option>
+                            <!-- Dynamically loaded -->
+                        </select>
+                    </div>
+
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" data-i18n="common.search">Search</label>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                            <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Search comments or reason..." data-i18n-placeholder="common.searchPlaceholder" class="w-full bg-white border border-gray-200 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Table -->
@@ -138,7 +172,23 @@
                 
                 filteredLeaves = [...allLeaves];
 
-                // 3. Render table
+                // 3. Populate Leave Types for Filter
+                try {
+                    const types = await API.references.getLeaveTypes();
+                    const typeSelect = document.getElementById('filterType');
+                    if (typeSelect && Array.isArray(types)) {
+                        types.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t.id || t.leaveTypeId;
+                            opt.innerText = t.leaveTypeName;
+                            typeSelect.appendChild(opt);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Could not load leave types for filter', e);
+                }
+
+                // 4. Render table
                 renderTable();
 
             } catch (error) {
@@ -232,14 +282,46 @@
             renderTable();
         }
 
-        function filterStatus(status) {
-            if (status === 'All Status') {
-                filteredLeaves = [...allLeaves];
+        function toggleFilterPanel() {
+            const panel = document.getElementById('filterPanel');
+            const btn = document.getElementById('filterBtn');
+            const isHidden = panel.classList.contains('hidden');
+            
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                btn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
             } else {
-                filteredLeaves = allLeaves.filter(l => (l.status || '').toLowerCase() === status.toLowerCase());
+                panel.classList.add('hidden');
+                btn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
             }
+        }
+
+        function applyFilters() {
+            const status = document.getElementById('filterStatus').value;
+            const typeId = document.getElementById('filterType').value;
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            filteredLeaves = allLeaves.filter(l => {
+                // Status match
+                const matchStatus = (status === 'all') || (l.status || '').toLowerCase() === status.toLowerCase();
+                
+                // Type match
+                const matchType = (typeId === 'all') || (l.leaveTypeId === typeId);
+                
+                // Search match (reason, type name, or approver)
+                const matchSearch = !search || 
+                    (l.reason || '').toLowerCase().includes(search) ||
+                    (l.leaveTypeName || '').toLowerCase().includes(search) ||
+                    (l.approverName || '').toLowerCase().includes(search);
+
+                return matchStatus && matchType && matchSearch;
+            });
+
             currentPage = 1;
             renderTable();
+            
+            // Re-translate if needed
+            if (window.I18N) I18N.updateDOM();
         }
 
         // Open viewer by id (use allLeaves lookup)
@@ -387,15 +469,8 @@
             document.getElementById('attachmentViewer').classList.add('hidden');
         }
 
-        // ฟังก์ชัน Filter ตามสถานะ
-        function filterStatus(status) {
-            if (status === 'All Status') {
-                renderRequests(allLeaves);
-            } else {
-                const filtered = allLeaves.filter(l => (l.status || '').toLowerCase() === status.toLowerCase());
-                renderRequests(filtered);
-            }
-        }
+        // Removing old redundant filterStatus function
+        // (Replaced by applyFilters above)
 
         window.onload = initMyRequests;
 </script>
